@@ -3,21 +3,23 @@
 import std.stdio;
 import generate_script_class_names;
 
-string _project_path = null;
+string _root_path = null;
 
-void reset_path() {
+void reset_path(string project_path) {
 	import std.path : absolutePath;
-	import std.file : chdir;
+	import std.file : chdir, getcwd;
+	import std.path : buildPath;
 
-	if (! _project_path) {
-		_project_path = absolutePath("test/project_normal/project/");
+	if (! _root_path) {
+		_root_path = getcwd();
 	}
-	chdir(_project_path);
+	//writefln(_root_path);
+	//writefln(buildPath(_root_path, project_path));
+	chdir(buildPath(_root_path, project_path));
 }
 
 /* FIXME
 . Add testing of signals
-. Add testing of NativeLibrary
 . Add testing complete project
 . Add testing for complete project
 . Add test for code generation
@@ -30,22 +32,23 @@ unittest {
 
 	describe("godot_verify#Project",
 		it("Should parse project", delegate() {
-			reset_path();
+			reset_path("test/project_normal/project/");
 			auto project = new Project("project.godot");
 			project._path.shouldEqual("project.godot");
 			project._error.shouldBeNull();
 		}),
 		it("Should fail to parse invalid project", delegate() {
-			reset_path();
+			reset_path("test/project_normal/project/");
 			auto project = new Project("XXX.godot");
 			project._path.shouldEqual("XXX.godot");
 			project._error.shouldNotBeNull();
+			project._error.shouldEqual("Failed to find XXX.godot file ...");
 		})
 	);
 
 	describe("godot_verify#Scene",
 		it("Should parse scene with child scene", delegate() {
-			reset_path();
+			reset_path("test/project_normal/project/");
 			auto scene = new Scene("Level/Level.tscn");
 			scene._path.shouldEqual("Level/Level.tscn");
 			scene._error.shouldBeNull();
@@ -57,7 +60,7 @@ unittest {
 			}
 		}),
 		it("Should parse scene with child resources", delegate() {
-			reset_path();
+			reset_path("test/project_normal/project/");
 			auto scene = new Scene("Player/Player.tscn");
 			scene._path.shouldEqual("Player/Player.tscn");
 			scene._error.shouldBeNull();
@@ -72,17 +75,18 @@ unittest {
 			scene._resources[1].is_valid.shouldEqual(true);
 		}),
 		it("Should fail to parse invalid scene", delegate() {
-			reset_path();
+			reset_path("test/project_normal/project/");
 			auto scene = new Scene("Level/XXX.tscn");
 			scene._path.shouldEqual("Level/XXX.tscn");
 			scene._error.shouldNotBeNull();
+			scene._error.shouldEqual("Failed to find Level/XXX.tscn file ...");
 			scene._resources.length.shouldEqual(0);
 		})
 	);
 
 	describe("godot_verify#NativeScript",
 		it("Should parse native script", delegate() {
-			reset_path();
+			reset_path("test/project_normal/project/");
 			auto script = new NativeScript("Player/Player.gdns");
 			script._path.shouldEqual("Player/Player.gdns");
 			script._error.shouldBeNull();
@@ -93,14 +97,40 @@ unittest {
 			script._native_library._type.shouldEqual("GDNativeLibrary");
 		}),
 		it("Should fail to parse invalid native script", delegate() {
+			reset_path("test/project_normal/project/");
 			auto script = new NativeScript("Player/XXX.gdns");
 			script._path.shouldEqual("Player/XXX.gdns");
 			script._error.shouldNotBeNull();
+			script._error.shouldEqual("Failed to find Player/XXX.gdns file ...");
 			script._class_name.shouldBeNull();
 
 			script._native_library.shouldBeNull();
 		})
 	);
+
+	describe("godot_verify#NativeLibrary",
+		it("Should parse native library", delegate() {
+			reset_path("test/project_normal/project/");
+			auto library = new NativeLibrary("libgame.gdnlib");
+			library._path.shouldEqual("libgame.gdnlib");
+			library._error.shouldBeNull();
+			library._dll_windows_path.shouldEqual("game.dll");
+			library._dll_linux_path.shouldEqual("libgame.so");
+			library._symbol_prefix.shouldEqual("game");
+		}),
+		it("Should fail to parse invalid native library", delegate() {
+			reset_path("test/project_normal/project/");
+			auto library = new NativeLibrary("XXX.gdnlib");
+			library._path.shouldEqual("XXX.gdnlib");
+			library._error.shouldNotBeNull();
+			library._error.shouldEqual("Failed to find XXX.gdnlib file ...");
+			library._dll_windows_path.shouldBeNull();
+			library._dll_linux_path.shouldBeNull();
+			library._symbol_prefix.shouldBeNull();
+		})
+	);
+
+
 /*
 	describe("godot_verify#complete_project",
 		it("Should parse complete project", delegate() {

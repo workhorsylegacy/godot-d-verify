@@ -1,6 +1,11 @@
 
 module generate_script_class_names;
 
+void fuck() {
+	import dscanner.symbol_finder;
+	//auto finder = dscanner.symbol_finder();
+}
+
 /*
 TODO:
 . Make sure image resources are present too

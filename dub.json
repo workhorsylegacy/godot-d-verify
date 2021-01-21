@@ -24,7 +24,8 @@
 			"importPaths": ["source/", "test/"],
 			"sourceFiles": ["test/test.d"],
 			"dependencies": {
-				"bdd": "~>2.0.0"
+				"bdd": "~>2.0.0",
+				"dscanner": "~>0.11.0"
 			}
 		}
 	]
