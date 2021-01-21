@@ -1,0 +1,7 @@
+dub.selections.json
+.dub/
+lib/
+*.o
+*.obj
+examples/example
+examples/example.exe
