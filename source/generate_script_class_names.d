@@ -1,9 +1,91 @@
 
 module generate_script_class_names;
 
-void fuck() {
-	import dscanner.symbol_finder;
-	//auto finder = dscanner.symbol_finder();
+import dxml.dom;
+
+class Node {
+	DOMEntity!string entity;
+	string path = null;
+
+	this(DOMEntity!string entity, string path) {
+		this.entity = entity;
+		this.path = path;
+	}
+}
+
+import std.stdio : stdout;
+
+Node readNodes(string file_name) {
+	import std.file : read, exists;
+
+	auto data = cast(string)read(file_name);
+	auto dom = parseDOM(data);
+	Node node = new Node(dom, dom.name ~ `/`);
+	return node;
+}
+
+// FIXME: Change to use Node rather than DOMEntity!string
+Node[] getNodes(DOMEntity!string dom, string node_path_to_find, bool is_printing=false) {
+	Node[] retval;
+
+	Node[] nodes = [new Node(dom, dom.name ~ `/`)];
+	while (nodes.length > 0) {
+		Node node = nodes[0];
+		nodes = nodes[1 .. $];
+		if (is_printing) {
+			stdout.writefln("!!!!!!!!!!!!!!!!!!!!!!! node.path: %s", node.path); stdout.flush();
+		}
+
+		if (node.path == node_path_to_find) {
+			retval ~= node;
+		}
+
+		if (node.entity.type != EntityType.elementEmpty) {
+			foreach (child ; node.entity.children) {
+				if (child.type != EntityType.text) {
+					nodes ~= new Node(child, node.path ~ child.name ~ `/`);
+				}
+			}
+		}
+	}
+
+	return retval;
+}
+
+Node getNode(Node node, string node_path_to_find, bool is_printing=false) {
+	Node[] retval = node.entity.getNodes(node_path_to_find, is_printing);
+	if (retval.length > 0) {
+		return retval[0];
+	}
+
+	return null;
+}
+
+string getNodeText(Node node) {
+	foreach (child ; node.entity.children) {
+		return child.text;
+	}
+
+	return "";
+}
+
+void getCodeClasses() {
+	import std.file : read, exists;
+
+	try {
+		string file_name = "../../../level.d.xml";
+
+		auto root_node = readNodes(file_name);
+		foreach (klass ; root_node.entity.getNodes("/module/declaration/classDeclaration/")) {
+			auto class_name = klass.getNode("classDeclaration/name/").getNodeText();
+			auto base_class_name = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText();
+
+			stdout.writefln("        class_name: %s", class_name); stdout.flush();
+			stdout.writefln("        base_class_name: %s", base_class_name); stdout.flush();
+		}
+	} catch (Throwable err) {
+		stdout.writefln("?????????????????????? err: %s", err); stdout.flush();
+	}
 }
 
 /*

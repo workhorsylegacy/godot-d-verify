@@ -148,7 +148,7 @@ unittest {
 		it("Should fail to parse scene with missing signal method", delegate() {
 			reset_path("test/project_signal_missing/project/");
 
-			fuck();
+			getCodeClasses();
 
 			auto scene = new Scene("Level/Level.tscn");
 			scene._path.shouldEqual("Level/Level.tscn");

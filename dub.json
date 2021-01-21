@@ -25,7 +25,8 @@
 			"sourceFiles": ["test/test.d"],
 			"dependencies": {
 				"bdd": "~>2.0.0",
-				"dscanner": "~>0.11.0"
+				"dscanner": "~>0.11.0",
+				"dxml": "~>0.4.3"
 			}
 		}
 	]
