@@ -130,6 +130,40 @@ unittest {
 		})
 	);
 
+	describe("godot_verify#SceneSignal",
+		it("Should parse scene with signal", delegate() {
+			reset_path("test/project_signal/project/");
+			auto scene = new Scene("Level/Level.tscn");
+			scene._path.shouldEqual("Level/Level.tscn");
+			scene._error.shouldBeNull();
+			scene._resources.length.shouldEqual(1);
+			foreach (connection ; scene._connections) {
+				connection._signal.shouldEqual("pressed");
+				connection._from.shouldEqual("Button");
+				connection._to.shouldEqual(".");
+				connection._method.shouldEqual("on_button_pressed"); // FIXME: onButtonPressed
+				connection.is_valid.shouldEqual(true);
+			}
+		}),
+		it("Should fail to parse scene with missing signal method", delegate() {
+			reset_path("test/project_signal_missing/project/");
+
+			fuck();
+
+			auto scene = new Scene("Level/Level.tscn");
+			scene._path.shouldEqual("Level/Level.tscn");
+//			scene._error.shouldNotBeNull();
+//			scene._error.shouldEqual(`Script Level/Level.tscn  missing signal on_button_pressed`);
+			scene._resources.length.shouldEqual(1);
+			foreach (connection ; scene._connections) {
+				connection._signal.shouldEqual("pressed");
+				connection._from.shouldEqual("Button");
+				connection._to.shouldEqual(".");
+				connection._method.shouldEqual("xxx");
+				connection.is_valid.shouldEqual(true);
+			}
+		})
+	);
 
 /*
 	describe("godot_verify#complete_project",

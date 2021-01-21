@@ -1,0 +1,8 @@
+[gd_resource type="NativeScript" load_steps=2 format=2]
+
+[ext_resource path="res://libsimple.gdnlib" type="GDNativeLibrary" id=1]
+
+[resource]
+resource_name = "Main"
+class_name = "level.Level"
+library = ExtResource( 1 )
