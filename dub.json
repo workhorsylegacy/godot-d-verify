@@ -1,0 +1,31 @@
+{
+	"name": "godot-d-verify",
+	"description": "Verify a D Godot project",
+	"authors": [
+		"Matthew Brennan Jones <matthew.brennan.jones@gmail.com>"
+	],
+	"homepage": "https://github.com/workhorsy/godot-d-verify",
+	"copyright": "Copyright (c) 2021 Matthew Brennan Jones",
+	"license": "MIT",
+	"targetPath": "lib",
+	"targetType": "staticLibrary",
+
+	"configurations": [
+		{
+			"name": "default",
+			"targetName": "godot-d-verify",
+			"importPaths": ["source/"],
+			"dependencies": {
+			}
+		},
+		{
+			"name": "unittest",
+			"targetName": "godot-d-verify-test",
+			"importPaths": ["source/", "test/"],
+			"sourceFiles": ["test/test.d"],
+			"dependencies": {
+				"bdd": "~>2.0.0"
+			}
+		}
+	]
+}
