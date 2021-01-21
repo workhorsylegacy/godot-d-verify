@@ -1,4 +1,6 @@
 
+module generate_script_class_names;
+
 /*
 TODO:
 . Make sure image resources are present too

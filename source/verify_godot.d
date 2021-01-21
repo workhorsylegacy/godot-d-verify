@@ -1,6 +1,6 @@
 
 
-module verify;
+module verify_godot_ass;
 
 void verify() {
 /*
