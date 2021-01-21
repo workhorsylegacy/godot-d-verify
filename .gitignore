@@ -3,5 +3,8 @@ dub.selections.json
 lib/
 *.o
 *.obj
+*.dll
+*.exe
 examples/example
-examples/example.exe
+
+.import
