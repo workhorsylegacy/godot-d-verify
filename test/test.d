@@ -1,7 +1,8 @@
 
 
 import std.stdio;
-import generate_script_class_names;
+import verify_d_code : getCodeClasses;
+import verify_godot : Project, Scene, NativeScript, NativeLibrary;
 
 string _root_path = null;
 
@@ -19,10 +20,9 @@ void reset_path(string project_path) {
 }
 
 /* FIXME
+. delete code generation?
 . Add testing of signals
-. Add testing complete project
 . Add testing for complete project
-. Add test for code generation
 . Add compile test for valididy
 
 */

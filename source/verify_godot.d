@@ -1,38 +1,381 @@
 
+module verify_godot;
 
-module verify_godot_ass;
 
-void verify() {
+import std.stdio : stdout;
+
+
+
 /*
-	import std.traits;
-	import std.string : format;
-	import script_class_names;
+TODO:
+. Make sure image resources are present too
+*/
 
-	// Import all the classes
-	static foreach (file_name, class_name ; getClassNames()) {
-		mixin("import %s : %s;".format(file_name, class_name));
+
+Scene[string] g_scenes;
+NativeScript[string] g_scripts;
+NativeLibrary[string] g_libraries;
+
+class RefConnection {
+	string _signal = null;
+	string _from = null;
+	string _to = null;
+	string _method = null;
+
+	this(string line) {
+		import std.stdio : writefln;
+		import std.string : format, strip, split, splitLines, startsWith;
+
+		foreach (chunk ; line.split(`]`)[0].split(" ")) {
+			string[] pair = chunk.split("=");
+			switch (pair[0]) {
+				case "signal": this._signal = pair[1].strip(`"`); break;
+				case "from": this._from = pair[1].strip(`"`); break;
+				case "to": this._to = pair[1].strip(`"`); break;
+				case "method": this._method = pair[1].strip(`"`); break;
+				default: break;
+			}
+		}
+/*
+		if (this.is_valid) {
+			writefln("## signal:%s, from:%s, to:%s, method:%s", _signal, _from, _to, _method);
+		}
+*/
 	}
 
-	// Make sure the script's D classes exists
-	static foreach (path, name ; getScriptClassNames()) {
-		static if (! is(mixin(name))) {
-			static assert(0, `Script "%s" needs class "%s" which is not loaded!`.format(path, name));
+	bool is_valid() {
+		return (
+			_signal &&
+			_from &&
+			_to &&
+			_method);
+	}
+}
+
+class RefExtResource {
+	string _path = null;
+	string _type = null;
+
+	this(string line) {
+		import std.stdio : writefln;
+		import std.string : format, strip, split, splitLines, startsWith;
+
+		foreach (chunk ; line.split(`]`)[0].split(" ")) {
+			string[] pair = chunk.split("=");
+			switch (pair[0]) {
+				case "path": this._path = pair[1].strip(`"`).split(`res://`)[1]; break;
+				case "type": this._type = pair[1].strip(`"`); break;
+				default: break;
+			}
+		}
+/*
+		if (this.is_valid) {
+			writefln("## path:%s, type:%s", _path, _type);
+		}
+*/
+	}
+
+	bool is_valid() {
+		return (
+			_path &&
+			_type);
+	}
+}
+
+class Project {
+	string main_scene_path = null;
+	string _path = null;
+	string _error = null;
+
+	this(string file_name) {
+		import std.string : format, strip, split, splitLines, startsWith;
+		import std.stdio : stdout, stderr, writefln;
+		import std.file : read, exists;
+		import std.regex : matchFirst;
+
+		this._path = file_name;
+
+		// Read the project.godot file to find the main .tscn
+		if (! exists(file_name)) {
+			this._error = "Failed to find %s file ...".format(file_name);
+			return;
+		}
+
+		auto data = cast(string)read(file_name);
+		string section = null;
+		foreach (line ; data.splitLines) {
+			if (matchFirst(line, r"^\[\w+\]$")) {
+				section = line;
+			}
+
+			if (section == "[application]" && line.startsWith("run/main_scene=")) {
+				this.main_scene_path = line.split("run/main_scene=")[1].strip(`"`).split(`res://`)[1];
+			}
 		}
 	}
+}
 
-	// Make sure the scene signals have matching D methods
-	immutable auto entries = getSceneSignalNames();
-	static foreach (path, signals ; entries) {
-		static if (signals != SceneSignals.init) {
-			static if (! is(mixin(signals.class_name))) {
-				static assert(0, `Script "%s" needs class "%s" which is not loaded!`.format(path, signals.class_name));
-			}
-			static foreach (method ; signals.methods) {
-				static if (! hasMember!(mixin(signals.class_name), method)) {
-					static assert(0, `Scene "%s" needs method "%s.%s" which is missing!`.format(path, signals.class_name, method));
+class Scene {
+	string _path = null;
+	string _error = null;
+//	string _resource_type = null;
+	RefExtResource[] _resources;
+	RefConnection[] _connections;
+
+	this(string file_name/*, string resource_type*/) {
+		import std.string : format, strip, split, splitLines, startsWith;
+		import std.stdio : stdout, stderr, writefln;
+		import std.file : read, exists;
+
+		this._path = file_name;
+//		this._resource_type = resource_type;
+
+		if (! exists(file_name)) {
+			this._error = "Failed to find %s file ...".format(file_name);
+			return;
+		}
+
+		auto data = cast(string)read(file_name);
+		foreach (line ; data.splitLines) {
+			if (line.startsWith("[ext_resource ")) {
+				auto res = new RefExtResource(line);
+				if (res.is_valid) {
+					this._resources ~= res;
+				}
+			} else if (line.startsWith("[connection ")) {
+				auto con = new RefConnection(line);
+				if (con.is_valid) {
+					this._connections ~= con;
 				}
 			}
 		}
 	}
-*/
 }
+
+class NativeScript {
+	string _path = null;
+	string _error = null;
+	string _class_name = null;
+	RefExtResource _native_library = null;
+
+	this(string file_name) {
+		import std.string : format, strip, split, splitLines, startsWith;
+		import std.stdio : stdout, stderr, writefln;
+		import std.file : read, exists;
+		import std.regex : matchFirst;
+
+		this._path = file_name;
+
+		if (! exists(file_name)) {
+			this._error = "Failed to find %s file ...".format(file_name);
+			return;
+		}
+
+		auto data = cast(string)read(this._path);
+		string section = null;
+		foreach (line ; data.splitLines) {
+			if (line.startsWith("[ext_resource ")) {
+				auto res = new RefExtResource(line);
+				if (res.is_valid) {
+					switch (res._type) {
+						case "GDNativeLibrary": this._native_library = res; break;
+						default: break;
+					}
+				}
+			}
+
+			if (matchFirst(line, r"^\[\w+\]$")) {
+				section = line;
+			}
+
+			if (section == "[resource]" && line.startsWith("class_name = ")) {
+				this._class_name = line.split("class_name = ")[1].strip(`"`);
+			}
+		}
+	}
+}
+
+class NativeLibrary {
+	string _path = null;
+	string _error = null;
+	string _dll_windows_path = null;
+	string _dll_linux_path = null;
+	string _symbol_prefix = null;
+
+	this(string file_name) {
+		import std.string : format, strip, split, splitLines, startsWith;
+		import std.stdio : stdout, stderr, writefln;
+		import std.file : read, exists;
+		import std.regex : matchFirst;
+
+		this._path = file_name;
+
+		// Make sure the file exists
+		if (! exists(file_name)) {
+			this._error = "Failed to find %s file ...".format(file_name);
+			return;
+		}
+
+		auto data = cast(string)read(this._path);
+		string section = null;
+		foreach (line ; data.splitLines) {
+			if (matchFirst(line, r"^\[\w+\]$")) {
+				section = line;
+			}
+
+			if (section == "[general]" && line.startsWith("symbol_prefix=")) {
+				this._symbol_prefix = line.split("symbol_prefix=")[1].strip(`"`);
+			} else if (section == "[entry]" && line.startsWith("Windows.64=")) {
+				this._dll_windows_path = line.split("Windows.64=")[1].strip(`"`).split(`res://`)[1];
+			} else if (section == "[entry]" && line.startsWith("X11.64=")) {
+				this._dll_linux_path = line.split("X11.64=")[1].strip(`"`).split(`res://`)[1];
+			}
+		}
+	}
+}
+
+Project scanProject(string file_name) {
+	auto project = new Project(file_name);
+	if (project) {
+		auto scene = new Scene(project.main_scene_path);
+		g_scenes[project.main_scene_path] = scene;
+	}
+
+	// Scan all the scenes, scripts, and libraries
+	bool is_scanning = true;
+	while (is_scanning) {
+		is_scanning = false;
+		foreach (Scene scene ; g_scenes.values()) {
+			foreach (RefExtResource resource ; scene._resources) {
+				switch (resource._type) {
+					case "PackedScene":
+						if (resource._path !in g_scenes) {
+							g_scenes[resource._path] = new Scene(resource._path);
+							is_scanning = true;
+						}
+						break;
+					case "Script":
+						if (resource._path !in g_scripts) {
+							g_scripts[resource._path] = new NativeScript(resource._path);
+							is_scanning = true;
+						}
+						break;
+					default:
+						break;
+				}
+			}
+		}
+
+		foreach (NativeScript script ; g_scripts.values()) {
+			RefExtResource resource = script._native_library;
+			if (resource._path !in g_libraries) {
+				g_libraries[resource._path] = new NativeLibrary(resource._path);
+				is_scanning = true;
+			}
+		}
+	}
+
+	return project;
+}
+
+void printInfo(Project project) {
+	import std.stdio : stdout;
+
+	// Print out everything
+	stdout.writefln("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"); stdout.flush();
+	stdout.writefln(".project %s", project._path); stdout.flush();
+	stdout.writefln("    main_scene_path %s", project.main_scene_path); stdout.flush();
+	foreach (path, scene ; g_scenes) {
+		stdout.writefln(".tscn %s", path); stdout.flush();
+		stdout.writefln("    _error: %s", scene._error); stdout.flush();
+	}
+	foreach (path, script ; g_scripts) {
+		stdout.writefln(".gdns %s", path); stdout.flush();
+		stdout.writefln("    _error: %s", script._error); stdout.flush();
+	}
+	foreach (path, library ; g_libraries) {
+		stdout.writefln(".gdnlib %s", path); stdout.flush();
+		stdout.writefln("    _error: %s", library._error); stdout.flush();
+	}
+	stdout.writefln("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"); stdout.flush();
+}
+
+void printErrors(Project project) {
+	import std.stdio : stderr;
+	import std.string : format;
+
+	// Print out any errors
+	foreach (Scene scene ; g_scenes.values()) {
+		string[] errors;
+		foreach (RefExtResource resource ; scene._resources) {
+			switch (resource._type) {
+				case "PackedScene":
+					Scene child_scene = g_scenes[resource._path];
+					if (child_scene._error) {
+						errors ~= "    error: %s".format(child_scene._error);
+					}
+					break;
+				case "Script":
+					NativeScript child_script = g_scripts[resource._path];
+					if (child_script._error) {
+						errors ~= "    error: %s".format(child_script._error);
+					}
+					break;
+				default:
+					break;
+			}
+		}
+
+		if (errors.length > 0) {
+			stderr.writefln("tscn: %s", scene._path); stderr.flush();
+			foreach (error ; errors) {
+				stderr.writefln("%s", error); stderr.flush();
+			}
+		}
+	}
+
+	foreach (NativeScript script ; g_scripts.values()) {
+		string[] errors;
+		NativeLibrary child_library = g_libraries[script._native_library._path];
+
+		if (child_library._error) {
+			errors ~= "    error: %s".format(child_library._error);
+		}
+
+		if (errors.length > 0) {
+			stderr.writefln("gdns: %s", script._path); stderr.flush();
+			foreach (error ; errors) {
+				stderr.writefln("%s", error); stderr.flush();
+			}
+		}
+	}
+
+	foreach (NativeLibrary library ; g_libraries.values()) {
+		string[] errors;
+
+		if (errors.length > 0) {
+			stderr.writefln("gdnlib: %s", library._path); stderr.flush();
+			foreach (error ; errors) {
+				stderr.writefln("%s", error); stderr.flush();
+			}
+		}
+	}
+}
+
+/*
+int main() {
+	import std.stdio : stdout;
+	import std.file : chdir;
+
+	// Scan the godot.project file and main scene
+	stdout.writefln("Verifying godot project ..."); stdout.flush();
+	chdir("project/");
+
+	auto project = scanProject("project.godot");
+	printInfo(project);
+	printErrors(project);
+	generateCode(g_scenes, g_scripts, g_libraries);
+
+	return 0;
+}
+*/
