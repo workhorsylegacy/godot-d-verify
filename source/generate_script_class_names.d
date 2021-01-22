@@ -70,18 +70,44 @@ string getNodeText(Node node) {
 }
 
 void getCodeClasses() {
-	import std.file : read, exists;
+	import std.file : read, exists, getcwd, chdir;
+	import std.process : executeShell;
+	import std.file : dirEntries, SpanMode;
+	import std.path : baseName, dirName;
+	import std.string : format, endsWith;
+	import std.algorithm : filter;
+
+	chdir("../../../");
+	//stdout.writefln("????????? getcwd: %s", getcwd()); stdout.flush();
 
 	try {
-		string file_name = "../../../level.d.xml";
 
-		auto root_node = readNodes(file_name);
-		foreach (klass ; root_node.entity.getNodes("/module/declaration/classDeclaration/")) {
-			auto class_name = klass.getNode("classDeclaration/name/").getNodeText();
-			auto base_class_name = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText();
+		auto file_names = dirEntries("test/project_signal/src/", SpanMode.shallow, false).filter!(f => f.name.endsWith(".d"));
 
-			stdout.writefln("        class_name: %s", class_name); stdout.flush();
-			stdout.writefln("        base_class_name: %s", base_class_name); stdout.flush();
+
+		foreach (entry ; file_names) {
+			//stdout.writefln("######### entry: %s", entry); stdout.flush();
+
+			//auto full_name = dirName(entry);
+			auto full_name = entry;
+			auto file_name = baseName(entry);
+			auto command = `dscanner.exe --ast %s > %s.xml`.format(full_name, file_name);
+			//stdout.writefln("######### command: %s", command); stdout.flush();
+
+			auto dscanner = executeShell(command);
+			if (dscanner.status != 0) {
+				stdout.writeln("Dscanner failed:\n", dscanner.output); stdout.flush();
+				return;
+			}
+
+			auto root_node = readNodes(`%s.xml`.format(file_name));
+			foreach (klass ; root_node.entity.getNodes("/module/declaration/classDeclaration/")) {
+				auto class_name = klass.getNode("classDeclaration/name/").getNodeText();
+				auto base_class_name = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText();
+
+				stdout.writefln("        class_name: %s", class_name); stdout.flush();
+				stdout.writefln("        base_class_name: %s", base_class_name); stdout.flush();
+			}
 		}
 	} catch (Throwable err) {
 		stdout.writefln("?????????????????????? err: %s", err); stdout.flush();

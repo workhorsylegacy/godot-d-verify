@@ -146,7 +146,7 @@ unittest {
 			}
 		}),
 		it("Should fail to parse scene with missing signal method", delegate() {
-			reset_path("test/project_signal_missing/project/");
+			reset_path("test/project_signal/project/");
 
 			getCodeClasses();
 
