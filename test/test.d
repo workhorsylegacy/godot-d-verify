@@ -133,22 +133,47 @@ unittest {
 	describe("godot_verify#SceneSignal",
 		it("Should parse scene with signal", delegate() {
 			reset_path("test/project_signal/project/");
+
+			// Made sure the scene is valid
 			auto scene = new Scene("Level/Level.tscn");
 			scene._path.shouldEqual("Level/Level.tscn");
 			scene._error.shouldBeNull();
 			scene._resources.length.shouldEqual(1);
-			foreach (connection ; scene._connections) {
-				connection._signal.shouldEqual("pressed");
-				connection._from.shouldEqual("Button");
-				connection._to.shouldEqual(".");
-				connection._method.shouldEqual("on_button_pressed"); // FIXME: onButtonPressed
-				connection.is_valid.shouldEqual(true);
-			}
+
+			// Make sure the scene's script resource is valid
+			auto resource = scene._resources[0];
+			resource._type.shouldEqual("Script");
+			resource._path.shouldEqual("Level/Level.gdns");
+
+			// Make sure the scene's script is valid
+			auto script = new NativeScript(resource._path);
+			script._error.shouldBeNull();
+			script._class_name.shouldEqual("level.Level");
+			scene._connections.length.shouldEqual(1);
+
+			// Make sure scene's signal connection is valid
+			auto connection = scene._connections[0];
+			connection._signal.shouldEqual("pressed");
+			connection._from.shouldEqual("Button");
+			connection._to.shouldEqual(".");
+			connection._method.shouldEqual("on_button_pressed"); // FIXME: onButtonPressed
+			connection.is_valid.shouldEqual(true);
+
+			// Make sure the D code is valid
+			auto class_infos = getCodeClasses("test/project_signal/src/");
+			class_infos.length.shouldEqual(1);
+			auto class_info = class_infos[0];
+			class_info._module.shouldEqual("level");
+			class_info.class_name.shouldEqual("Level");
+			class_info.base_class_name.shouldEqual("GodotScript");
+			"_ready".shouldBeIn(class_info.methods);
+			"_process".shouldBeIn(class_info.methods);
+			"onButtonPressed".shouldBeIn(class_info.methods);
 		}),
 		it("Should fail to parse scene with missing signal method", delegate() {
 			reset_path("test/project_signal/project/");
 
-			getCodeClasses();
+			//getCodeClasses("test/project_signal/src/");
 
 			auto scene = new Scene("Level/Level.tscn");
 			scene._path.shouldEqual("Level/Level.tscn");

@@ -69,49 +69,83 @@ string getNodeText(Node node) {
 	return "";
 }
 
-void getCodeClasses() {
+class ClassInfo {
+	string _module = null;
+	string class_name = null;
+	string base_class_name = null;
+	string[] methods;
+
+	bool isValid() {
+		return class_name && base_class_name;
+	}
+}
+
+ClassInfo[] getCodeClasses(string path_to_src) {
 	import std.file : read, exists, getcwd, chdir;
 	import std.process : executeShell;
 	import std.file : dirEntries, SpanMode;
 	import std.path : baseName, dirName;
-	import std.string : format, endsWith;
+	import std.string : format, endsWith, split;
 	import std.algorithm : filter;
 
+	string prev_dir = getcwd();
 	chdir("../../../");
-	//stdout.writefln("????????? getcwd: %s", getcwd()); stdout.flush();
 
-	try {
+	ClassInfo[] retval;
 
-		auto file_names = dirEntries("test/project_signal/src/", SpanMode.shallow, false).filter!(f => f.name.endsWith(".d"));
+//	try {
 
+		// Get all the D files in the src directory
+		auto file_names = dirEntries(path_to_src, SpanMode.shallow, false).filter!(f => f.name.endsWith(".d"));
 
-		foreach (entry ; file_names) {
-			//stdout.writefln("######### entry: %s", entry); stdout.flush();
+		foreach (full_file_name ; file_names) {
+			//stdout.writefln("######### full_file_name: %s", full_file_name); stdout.flush();
 
-			//auto full_name = dirName(entry);
-			auto full_name = entry;
-			auto file_name = baseName(entry);
-			auto command = `dscanner.exe --ast %s > %s.xml`.format(full_name, file_name);
+			// Use DScanner to generate an XML AST of the D file
+			auto file_name = baseName(full_file_name);
+			auto command = `dscanner.exe --ast %s > %s.xml`.format(full_file_name, file_name);
 			//stdout.writefln("######### command: %s", command); stdout.flush();
-
 			auto dscanner = executeShell(command);
 			if (dscanner.status != 0) {
-				stdout.writeln("Dscanner failed:\n", dscanner.output); stdout.flush();
-				return;
+				throw new Exception("DScanner failed: %s".format(dscanner.output));
 			}
 
+			// Get all the classes and methods from the XML AST
 			auto root_node = readNodes(`%s.xml`.format(file_name));
 			foreach (klass ; root_node.entity.getNodes("/module/declaration/classDeclaration/")) {
-				auto class_name = klass.getNode("classDeclaration/name/").getNodeText();
-				auto base_class_name = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText();
+				auto info = new ClassInfo();
+				info._module = file_name.split(".")[0];
+				info.class_name = klass.getNode("classDeclaration/name/").getNodeText();
+				info.base_class_name = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText();
 
-				stdout.writefln("        class_name: %s", class_name); stdout.flush();
-				stdout.writefln("        base_class_name: %s", base_class_name); stdout.flush();
+				foreach (method ; klass.entity.getNodes("classDeclaration/structBody/declaration/functionDeclaration/")) {
+					info.methods ~= method.getNode("functionDeclaration/name/").getNodeText();
+				}
+
+				if (info.isValid()) {
+					retval ~= info;
+				}
 			}
 		}
-	} catch (Throwable err) {
-		stdout.writefln("?????????????????????? err: %s", err); stdout.flush();
-	}
+
+/*
+		// Print all the class infos
+		foreach (info ; retval) {
+			stdout.writefln("        module: %s", info._module); stdout.flush();
+			stdout.writefln("        class_name: %s", info.class_name); stdout.flush();
+			stdout.writefln("        base_class_name: %s", info.base_class_name); stdout.flush();
+			foreach (method ; info.methods) {
+				stdout.writefln("        method: %s", method); stdout.flush();
+			}
+		}
+*/
+
+//	} catch (Exception err) {
+//		stdout.writefln("?????????????????????? err: %s", err); stdout.flush();
+//	}
+
+	chdir(prev_dir);
+	return retval;
 }
 
 /*
