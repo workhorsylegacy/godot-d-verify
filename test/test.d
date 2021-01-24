@@ -134,7 +134,7 @@ unittest {
 		it("Should parse scene with signal", delegate() {
 			reset_path("test/project_signal/project/");
 
-			// Made sure the scene is valid
+			// Make sure the scene is valid
 			auto scene = new Scene("Level/Level.tscn");
 			scene._path.shouldEqual("Level/Level.tscn");
 			scene._error.shouldBeNull();
@@ -171,22 +171,46 @@ unittest {
 			"onButtonPressed".shouldBeIn(class_info.methods);
 		}),
 		it("Should fail to parse scene with missing signal method", delegate() {
-			reset_path("test/project_signal/project/");
+			reset_path("test/project_signal_missing/project/");
 
-			//getCodeClasses("test/project_signal/src/");
-
+			// Made sure the scene is valid
 			auto scene = new Scene("Level/Level.tscn");
 			scene._path.shouldEqual("Level/Level.tscn");
-//			scene._error.shouldNotBeNull();
-//			scene._error.shouldEqual(`Script Level/Level.tscn  missing signal on_button_pressed`);
+			scene._error.shouldBeNull();
 			scene._resources.length.shouldEqual(1);
-			foreach (connection ; scene._connections) {
-				connection._signal.shouldEqual("pressed");
-				connection._from.shouldEqual("Button");
-				connection._to.shouldEqual(".");
-				connection._method.shouldEqual("xxx");
-				connection.is_valid.shouldEqual(true);
-			}
+
+			// Make sure the scene's script resource is valid
+			auto resource = scene._resources[0];
+			resource._type.shouldEqual("Script");
+			resource._path.shouldEqual("Level/Level.gdns");
+
+			// Make sure the scene's script is valid
+			auto script = new NativeScript(resource._path);
+			script._error.shouldBeNull();
+			script._class_name.shouldEqual("level.Level");
+			scene._connections.length.shouldEqual(1);
+
+			// Make sure scene's signal connection is valid
+			auto connection = scene._connections[0];
+			connection._signal.shouldEqual("pressed");
+			connection._from.shouldEqual("Button");
+			connection._to.shouldEqual(".");
+			connection._method.shouldEqual("xxx"); // FIXME: onButtonPressed
+			connection.is_valid.shouldEqual(true);
+
+			// Make sure the D code is valid
+			auto class_infos = getCodeClasses("test/project_signal_missing/src/");
+			class_infos.length.shouldEqual(1);
+			auto class_info = class_infos[0];
+			class_info._module.shouldEqual("level");
+			class_info.class_name.shouldEqual("Level");
+			class_info.base_class_name.shouldEqual("GodotScript");
+
+			import std.algorithm: canFind;
+			class_info.methods.canFind("_ready").shouldEqual(true);
+			class_info.methods.canFind("_process").shouldEqual(true);
+			class_info.methods.canFind("xxx").shouldEqual(false);
+			class_info.methods.canFind("onButtonPressed").shouldEqual(false);
 		})
 	);
 

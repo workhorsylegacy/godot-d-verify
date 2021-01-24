@@ -17,7 +17,7 @@ class Level : GodotScript!Control {
 
 	@Method _process(float delta) {
 	}
-
+/*
 	@Method onButtonPressed() { // Connected to on_button_pressed
 		import std.string : format;
 		_click_count++;
@@ -27,4 +27,5 @@ class Level : GodotScript!Control {
 		auto label = getNode(gs!"Label").as!Label;
 		label.text = String(message);
 	}
+*/
 }
