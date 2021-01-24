@@ -31,14 +31,15 @@ unittest {
 	import BDD;
 
 	describe("godot_verify#Project",
-		it("Should parse project", delegate() {
+		before(delegate(){
 			reset_path("test/project_normal/project/");
+		}),
+		it("Should parse project", delegate() {
 			auto project = new Project("project.godot");
 			project._path.shouldEqual("project.godot");
 			project._error.shouldBeNull();
 		}),
 		it("Should fail to parse invalid project", delegate() {
-			reset_path("test/project_normal/project/");
 			auto project = new Project("XXX.godot");
 			project._path.shouldEqual("XXX.godot");
 			project._error.shouldNotBeNull();
@@ -47,8 +48,10 @@ unittest {
 	);
 
 	describe("godot_verify#Scene",
-		it("Should parse scene with child scene", delegate() {
+		before(delegate(){
 			reset_path("test/project_normal/project/");
+		}),
+		it("Should parse scene with child scene", delegate() {
 			auto scene = new Scene("Level/Level.tscn");
 			scene._path.shouldEqual("Level/Level.tscn");
 			scene._error.shouldBeNull();
@@ -60,7 +63,6 @@ unittest {
 			}
 		}),
 		it("Should parse scene with child resources", delegate() {
-			reset_path("test/project_normal/project/");
 			auto scene = new Scene("Player/Player.tscn");
 			scene._path.shouldEqual("Player/Player.tscn");
 			scene._error.shouldBeNull();
@@ -75,7 +77,6 @@ unittest {
 			scene._resources[1].is_valid.shouldEqual(true);
 		}),
 		it("Should fail to parse invalid scene", delegate() {
-			reset_path("test/project_normal/project/");
 			auto scene = new Scene("Level/XXX.tscn");
 			scene._path.shouldEqual("Level/XXX.tscn");
 			scene._error.shouldNotBeNull();
@@ -85,8 +86,10 @@ unittest {
 	);
 
 	describe("godot_verify#NativeScript",
-		it("Should parse native script", delegate() {
+		before(delegate(){
 			reset_path("test/project_normal/project/");
+		}),
+		it("Should parse native script", delegate() {
 			auto script = new NativeScript("Player/Player.gdns");
 			script._path.shouldEqual("Player/Player.gdns");
 			script._error.shouldBeNull();
@@ -97,7 +100,6 @@ unittest {
 			script._native_library._type.shouldEqual("GDNativeLibrary");
 		}),
 		it("Should fail to parse invalid native script", delegate() {
-			reset_path("test/project_normal/project/");
 			auto script = new NativeScript("Player/XXX.gdns");
 			script._path.shouldEqual("Player/XXX.gdns");
 			script._error.shouldNotBeNull();
@@ -109,8 +111,10 @@ unittest {
 	);
 
 	describe("godot_verify#NativeLibrary",
-		it("Should parse native library", delegate() {
+		before(delegate(){
 			reset_path("test/project_normal/project/");
+		}),
+		it("Should parse native library", delegate() {
 			auto library = new NativeLibrary("libgame.gdnlib");
 			library._path.shouldEqual("libgame.gdnlib");
 			library._error.shouldBeNull();
@@ -119,7 +123,6 @@ unittest {
 			library._symbol_prefix.shouldEqual("game");
 		}),
 		it("Should fail to parse invalid native library", delegate() {
-			reset_path("test/project_normal/project/");
 			auto library = new NativeLibrary("XXX.gdnlib");
 			library._path.shouldEqual("XXX.gdnlib");
 			library._error.shouldNotBeNull();
@@ -205,12 +208,10 @@ unittest {
 			class_info._module.shouldEqual("level");
 			class_info.class_name.shouldEqual("Level");
 			class_info.base_class_name.shouldEqual("GodotScript");
-
-			import std.algorithm: canFind;
-			class_info.methods.canFind("_ready").shouldEqual(true);
-			class_info.methods.canFind("_process").shouldEqual(true);
-			class_info.methods.canFind("xxx").shouldEqual(false);
-			class_info.methods.canFind("onButtonPressed").shouldEqual(false);
+			"_ready".shouldBeIn(class_info.methods);
+			"_process".shouldBeIn(class_info.methods);
+			"xxx".shouldNotBeIn(class_info.methods);
+			"onButtonPressed".shouldNotBeIn(class_info.methods);
 		})
 	);
 
