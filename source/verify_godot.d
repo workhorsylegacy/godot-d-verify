@@ -9,9 +9,6 @@ module verify_godot;
 import std.stdio : stdout;
 
 
-Scene[string] g_scenes;
-NativeScript[string] g_scripts;
-NativeLibrary[string] g_libraries;
 
 class RefConnection {
 	string _signal = null;
@@ -83,6 +80,9 @@ class Project {
 	string main_scene_path = null;
 	string _path = null;
 	string _error = null;
+	Scene[string] _scenes;
+	NativeScript[string] _scripts;
+	NativeLibrary[string] _libraries;
 
 	this(string file_name) {
 		import std.string : format, strip, split, splitLines, startsWith;
@@ -243,25 +243,25 @@ Project scanProject(string full_project_path) {
 	auto project = new Project(project_file);
 	if (project) {
 		auto scene = new Scene(project.main_scene_path);
-		g_scenes[project.main_scene_path] = scene;
+		project._scenes[project.main_scene_path] = scene;
 	}
 
 	// Scan all the scenes, scripts, and libraries
 	bool is_scanning = true;
 	while (is_scanning) {
 		is_scanning = false;
-		foreach (Scene scene ; g_scenes.values()) {
+		foreach (Scene scene ; project._scenes.values()) {
 			foreach (RefExtResource resource ; scene._resources) {
 				switch (resource._type) {
 					case "PackedScene":
-						if (resource._path !in g_scenes) {
-							g_scenes[resource._path] = new Scene(resource._path);
+						if (resource._path !in project._scenes) {
+							project._scenes[resource._path] = new Scene(resource._path);
 							is_scanning = true;
 						}
 						break;
 					case "Script":
-						if (resource._path !in g_scripts) {
-							g_scripts[resource._path] = new NativeScript(resource._path);
+						if (resource._path !in project._scripts) {
+							project._scripts[resource._path] = new NativeScript(resource._path);
 							is_scanning = true;
 						}
 						break;
@@ -271,10 +271,10 @@ Project scanProject(string full_project_path) {
 			}
 		}
 
-		foreach (NativeScript script ; g_scripts.values()) {
+		foreach (NativeScript script ; project._scripts.values()) {
 			RefExtResource resource = script._native_library;
-			if (resource._path !in g_libraries) {
-				g_libraries[resource._path] = new NativeLibrary(resource._path);
+			if (resource._path !in project._libraries) {
+				project._libraries[resource._path] = new NativeLibrary(resource._path);
 				is_scanning = true;
 			}
 		}
@@ -292,15 +292,15 @@ void printInfo(Project project) {
 	stdout.writefln("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"); stdout.flush();
 	stdout.writefln(".project %s", project._path); stdout.flush();
 	stdout.writefln("    main_scene_path %s", project.main_scene_path); stdout.flush();
-	foreach (path, scene ; g_scenes) {
+	foreach (path, scene ; project._scenes) {
 		stdout.writefln(".tscn %s", path); stdout.flush();
 		stdout.writefln("    _error: %s", scene._error); stdout.flush();
 	}
-	foreach (path, script ; g_scripts) {
+	foreach (path, script ; project._scripts) {
 		stdout.writefln(".gdns %s", path); stdout.flush();
 		stdout.writefln("    _error: %s", script._error); stdout.flush();
 	}
-	foreach (path, library ; g_libraries) {
+	foreach (path, library ; project._libraries) {
 		stdout.writefln(".gdnlib %s", path); stdout.flush();
 		stdout.writefln("    _error: %s", library._error); stdout.flush();
 	}
@@ -312,18 +312,18 @@ void printErrors(Project project) {
 	import std.string : format;
 
 	// Print out any errors
-	foreach (Scene scene ; g_scenes.values()) {
+	foreach (Scene scene ; project._scenes.values()) {
 		string[] errors;
 		foreach (RefExtResource resource ; scene._resources) {
 			switch (resource._type) {
 				case "PackedScene":
-					Scene child_scene = g_scenes[resource._path];
+					Scene child_scene = project._scenes[resource._path];
 					if (child_scene._error) {
 						errors ~= "    error: %s".format(child_scene._error);
 					}
 					break;
 				case "Script":
-					NativeScript child_script = g_scripts[resource._path];
+					NativeScript child_script = project._scripts[resource._path];
 					if (child_script._error) {
 						errors ~= "    error: %s".format(child_script._error);
 					}
@@ -331,6 +331,13 @@ void printErrors(Project project) {
 				default:
 					break;
 			}
+		}
+
+		foreach (RefConnection connection ; scene._connections) {
+			connection._signal.shouldEqual("pressed");
+			connection._from.shouldEqual("Button");
+			connection._to.shouldEqual(".");
+			connection._method.shouldEqual("on_button_pressed"); // FIXME: onButtonPressed
 		}
 
 		if (errors.length > 0) {
@@ -341,9 +348,9 @@ void printErrors(Project project) {
 		}
 	}
 
-	foreach (NativeScript script ; g_scripts.values()) {
+	foreach (NativeScript script ; project._scripts.values()) {
 		string[] errors;
-		NativeLibrary child_library = g_libraries[script._native_library._path];
+		NativeLibrary child_library = project._libraries[script._native_library._path];
 
 		if (child_library._error) {
 			errors ~= "    error: %s".format(child_library._error);
@@ -357,7 +364,7 @@ void printErrors(Project project) {
 		}
 	}
 
-	foreach (NativeLibrary library ; g_libraries.values()) {
+	foreach (NativeLibrary library ; project._libraries.values()) {
 		string[] errors;
 
 		if (errors.length > 0) {

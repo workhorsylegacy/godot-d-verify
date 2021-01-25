@@ -8,7 +8,7 @@ module verify_d_code;
 import std.stdio : stdout;
 
 
-class ClassInfo {
+class KlassInfo {
 	string _module = null;
 	string class_name = null;
 	string base_class_name = null;
@@ -19,7 +19,7 @@ class ClassInfo {
 	}
 }
 
-ClassInfo[] getCodeClasses(string path_to_src) {
+KlassInfo[] getCodeClasses(string path_to_src) {
 	import std.file : read, exists, remove, getcwd, chdir;
 	import std.process : executeShell;
 	import std.file : dirEntries, SpanMode;
@@ -35,7 +35,7 @@ ClassInfo[] getCodeClasses(string path_to_src) {
 //	stdout.writefln("######### path_to_src: %s", path_to_src); stdout.flush();
 //	chdir(path_to_src);
 
-	ClassInfo[] retval;
+	KlassInfo[] retval;
 
 //	try {
 
@@ -62,7 +62,7 @@ ClassInfo[] getCodeClasses(string path_to_src) {
 			// Get all the classes and methods from the XML AST
 			auto root_node = readNodes(temp_file);
 			foreach (klass ; root_node.entity.getNodes("/module/declaration/classDeclaration/")) {
-				auto info = new ClassInfo();
+				auto info = new KlassInfo();
 				info._module = file_name.split(".")[0];
 				info.class_name = klass.getNode("classDeclaration/name/").getNodeText();
 				info.base_class_name = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText();
