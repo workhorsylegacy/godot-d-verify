@@ -85,17 +85,20 @@ string getNodeText(Node node) {
 }
 
 ClassInfo[] getCodeClasses(string path_to_src) {
-	import std.file : read, exists, getcwd, chdir;
+	import std.file : read, exists, remove, getcwd, chdir;
 	import std.process : executeShell;
 	import std.file : dirEntries, SpanMode;
 	import std.path : baseName, dirName;
 	import std.string : format, endsWith, split;
 	import std.algorithm : filter;
+	import create_temp_file : createTempFile;
 
 	string prev_dir = getcwd();
 	chdir("../../../");
 
 	ClassInfo[] retval;
+
+
 
 //	try {
 
@@ -105,9 +108,14 @@ ClassInfo[] getCodeClasses(string path_to_src) {
 		foreach (full_file_name ; file_names) {
 			//stdout.writefln("######### full_file_name: %s", full_file_name); stdout.flush();
 
-			// Use DScanner to generate an XML AST of the D file
+			// Generate a temporary file that gets auto deleted
 			auto file_name = baseName(full_file_name);
-			auto command = `dscanner.exe --ast %s > %s.xml`.format(full_file_name, file_name);
+			string temp_file = createTempFile(file_name, ".xml");
+			//stdout.writefln("!!!!!!!!!! temp_file: %s", temp_file);
+			scope(exit) if (exists(temp_file)) remove(temp_file);
+
+			// Use DScanner to generate an XML AST of the D file
+			auto command = `dscanner.exe --ast %s > %s`.format(full_file_name, temp_file);
 			//stdout.writefln("######### command: %s", command); stdout.flush();
 			auto dscanner = executeShell(command);
 			if (dscanner.status != 0) {
@@ -115,7 +123,7 @@ ClassInfo[] getCodeClasses(string path_to_src) {
 			}
 
 			// Get all the classes and methods from the XML AST
-			auto root_node = readNodes(`%s.xml`.format(file_name));
+			auto root_node = readNodes(temp_file);
 			foreach (klass ; root_node.entity.getNodes("/module/declaration/classDeclaration/")) {
 				auto info = new ClassInfo();
 				info._module = file_name.split(".")[0];
