@@ -5,13 +5,6 @@ module verify_godot;
 import std.stdio : stdout;
 
 
-
-/*
-TODO:
-. Make sure image resources are present too
-*/
-
-
 Scene[string] g_scenes;
 NativeScript[string] g_scripts;
 NativeLibrary[string] g_libraries;

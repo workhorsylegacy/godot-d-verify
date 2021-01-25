@@ -19,14 +19,6 @@ void reset_path(string project_path) {
 	chdir(buildPath(_root_path, project_path));
 }
 
-/* FIXME
-. delete code generation?
-. Add testing of signals
-. Add testing for complete project
-. Add compile test for valididy
-
-*/
-
 unittest {
 	import BDD;
 

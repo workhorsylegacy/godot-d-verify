@@ -13,3 +13,9 @@ cp ../../AppData/Local/dub/packages/dscanner-0.11.0/dscanner/bin/dscanner.exe ds
 ```
 dub test --compiler=ldc2
 ```
+
+# Build
+
+```
+dub run --compiler=ldc2 --build=debug
+```
