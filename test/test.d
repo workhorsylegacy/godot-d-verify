@@ -4,6 +4,7 @@
 // https://github.com/workhorsy/godot-d-verify
 
 import std.stdio;
+import std.file : chdir, getcwd;
 import verify_d_code : getCodeClasses;
 import verify_godot : Project, Scene, NativeScript, NativeLibrary;
 
@@ -158,6 +159,7 @@ unittest {
 			connection.is_valid.shouldEqual(true);
 
 			// Make sure the D code is valid
+			chdir(_root_path);
 			auto class_infos = getCodeClasses("test/project_signal/src/");
 			class_infos.length.shouldEqual(1);
 			auto class_info = class_infos[0];
@@ -197,6 +199,7 @@ unittest {
 			connection.is_valid.shouldEqual(true);
 
 			// Make sure the D code is valid
+			chdir(_root_path);
 			auto class_infos = getCodeClasses("test/project_signal_missing/src/");
 			class_infos.length.shouldEqual(1);
 			auto class_info = class_infos[0];

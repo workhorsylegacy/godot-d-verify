@@ -23,18 +23,19 @@ ClassInfo[] getCodeClasses(string path_to_src) {
 	import std.file : read, exists, remove, getcwd, chdir;
 	import std.process : executeShell;
 	import std.file : dirEntries, SpanMode;
-	import std.path : baseName, dirName;
+	import std.path : baseName, dirName, absolutePath;
 	import std.string : format, endsWith, split;
 	import std.algorithm : filter;
 	import create_temp_file : createTempFile;
 	import read_xml : readNodes, getNode, getNodes, getNodeText;
 
-	string prev_dir = getcwd();
-	chdir("../../../");
+//	string prev_dir = getcwd();
+//	path_to_src = absolutePath(path_to_src);
+//	stdout.writefln("######### prev_dir: %s", prev_dir); stdout.flush();
+//	stdout.writefln("######### path_to_src: %s", path_to_src); stdout.flush();
+//	chdir(path_to_src);
 
 	ClassInfo[] retval;
-
-
 
 //	try {
 
@@ -92,6 +93,6 @@ ClassInfo[] getCodeClasses(string path_to_src) {
 //		stdout.writefln("?????????????????????? err: %s", err); stdout.flush();
 //	}
 
-	chdir(prev_dir);
+//	chdir(prev_dir);
 	return retval;
 }

@@ -231,8 +231,16 @@ class NativeLibrary {
 	}
 }
 
-Project scanProject(string file_name) {
-	auto project = new Project(file_name);
+Project scanProject(string full_project_path) {
+	import std.file : chdir, getcwd;
+	import std.path : baseName, dirName;
+
+	string prev_dir = getcwd();
+	string project_file = baseName(full_project_path);
+	string project_dir = dirName(full_project_path);
+	chdir(project_dir);
+
+	auto project = new Project(project_file);
 	if (project) {
 		auto scene = new Scene(project.main_scene_path);
 		g_scenes[project.main_scene_path] = scene;
@@ -271,6 +279,8 @@ Project scanProject(string file_name) {
 			}
 		}
 	}
+
+	chdir(prev_dir);
 
 	return project;
 }

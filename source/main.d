@@ -5,26 +5,23 @@
 
 
 
-/*
+
 int main() {
 	import std.stdio : stdout;
-	import std.file : chdir;
+	import verify_godot;
+	import verify_d_code;
 
-	// Scan the godot.project file and main scene
 	stdout.writefln("Verifying godot project ..."); stdout.flush();
-	chdir("project/");
+	string project_path = `C:\Users\matt\Projects\PumaGameGodot\`;
 
-	auto project = scanProject("project.godot");
-	printInfo(project);
-	printErrors(project);
-	generateCode(g_scenes, g_scripts, g_libraries);
+	// Scan the godot.project
+	auto project = scanProject(project_path ~ `project\project.godot`);
 
-	return 0;
-}
-*/
+	// 
+	auto class_infos = getCodeClasses(project_path ~ `src\`);
 
-int main() {
-	import std.stdio;
-	writeln("Main called ...");
+	//printInfo(project);
+	//printErrors(project);
+
 	return 0;
 }
