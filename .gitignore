@@ -1,10 +1,12 @@
 dub.selections.json
 .dub/
 lib/
+bin/
 *.o
 *.obj
 *.dll
 *.exe
+*.xml
 examples/example
 
 .import

@@ -361,21 +361,3 @@ void printErrors(Project project) {
 		}
 	}
 }
-
-/*
-int main() {
-	import std.stdio : stdout;
-	import std.file : chdir;
-
-	// Scan the godot.project file and main scene
-	stdout.writefln("Verifying godot project ..."); stdout.flush();
-	chdir("project/");
-
-	auto project = scanProject("project.godot");
-	printInfo(project);
-	printErrors(project);
-	generateCode(g_scenes, g_scripts, g_libraries);
-
-	return 0;
-}
-*/
