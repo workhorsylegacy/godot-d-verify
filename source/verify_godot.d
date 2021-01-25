@@ -1,3 +1,7 @@
+// Copyright (c) 2021 Matthew Brennan Jones <matthew.brennan.jones@gmail.com>
+// MIT License
+// Verify Godot projects that use the D Programming Language
+// https://github.com/workhorsy/godot-d-verify
 
 module verify_godot;
 
