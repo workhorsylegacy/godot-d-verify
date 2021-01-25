@@ -29,7 +29,7 @@
 			"sourceFiles": ["test/test.d"],
 			"excludedSourceFiles": ["source/main.d"],
 			"dependencies": {
-				"bdd": "~>3.0.0",
+				"bdd": "~>3.1.0",
 				"dscanner": "~>0.11.0",
 				"dxml": "~>0.4.3"
 			}
