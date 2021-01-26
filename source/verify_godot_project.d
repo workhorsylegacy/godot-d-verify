@@ -10,32 +10,36 @@ import scan_godot_project;
 import scan_d_code;
 
 
-void printErrors(Project project, KlassInfo[] class_infos) {
+string[][string] findProjectErrors(Project project, KlassInfo[] class_infos) {
 	import std.stdio : stderr;
 	import std.string : format;
 	import std.algorithm : canFind;
 
-	// Print out any errors
+	string[][string] retval;
+
+	// Check project
 	{
 		string[] errors;
 
 		if (project._error) {
-			errors ~= "    error: %s".format(project._error);
+			errors ~= "error: %s".format(project._error);
+		} else {
+			if (project.main_scene_path == null) {
+				errors ~= `Project missing main scene`;
+			}
 		}
 
 		if (errors.length > 0) {
-			stderr.writefln("project: %s", project._path); stderr.flush();
-			foreach (error ; errors) {
-				stderr.writefln("%s", error); stderr.flush();
-			}
+			retval[project._path] = errors;
 		}
 	}
 
+	// Check scenes
 	foreach (Scene scene ; project._scenes.values()) {
 		string[] errors;
 
 		if (scene._error) {
-			errors ~= "    error: %s".format(scene._error);
+			errors ~= "error: %s".format(scene._error);
 		} else {
 			// Get the class name from .tscn -> .gdns -> class_name
 			string class_name = null;
@@ -65,10 +69,7 @@ void printErrors(Project project, KlassInfo[] class_infos) {
 		}
 
 		if (errors.length > 0) {
-			stderr.writefln("tscn: %s", scene._path); stderr.flush();
-			foreach (error ; errors) {
-				stderr.writefln("%s", error); stderr.flush();
-			}
+			retval["tscn: %s".format(scene._path)] = errors;
 		}
 	}
 
@@ -80,21 +81,65 @@ void printErrors(Project project, KlassInfo[] class_infos) {
 		}
 
 		if (errors.length > 0) {
-			stderr.writefln("gdns: %s", script._path); stderr.flush();
-			foreach (error ; errors) {
-				stderr.writefln("%s", error); stderr.flush();
-			}
+			retval["gdns: %s".format(script._path)] = errors;
 		}
 	}
 
 	foreach (NativeLibrary library ; project._libraries.values()) {
 		string[] errors;
 
+		if (library._error) {
+			errors ~= "    error: %s".format(library._error);
+		}
+
 		if (errors.length > 0) {
-			stderr.writefln("gdnlib: %s", library._path); stderr.flush();
-			foreach (error ; errors) {
-				stderr.writefln("%s", error); stderr.flush();
-			}
+			retval["gdnlib: %s".format(library._path)] = errors;
 		}
 	}
+
+	return retval;
+}
+
+
+unittest {
+	import BDD;
+	import std.path : absolutePath;
+	//import std.array;
+	//import std.file : read, exists, remove, getcwd, chdir;
+
+	//stdout.writefln("!!!!!!!!!!!!!!!!!!!!! getcwd: %s", getcwd());
+
+	describe("verify_godot_project#findProjectErrors",
+		it("Should succeed on working project", () {
+			string project_path = absolutePath(`test/project_normal/`);
+			auto project = getGodotProject(project_path ~ `project/project.godot`);
+			auto class_infos = getCodeClasses(project_path ~ `src/`);
+			string[][string] errors = findProjectErrors(project, class_infos);
+
+			errors.length.shouldEqual(0);
+		}),
+		it("Should fail when project main scene is not specified", () {
+			string project_path = absolutePath(`test/project_main_scene_no_entry/`);
+			auto project = getGodotProject(project_path ~ `project/project.godot`);
+			auto class_infos = getCodeClasses(project_path ~ `src/`);
+			string[][string] errors = findProjectErrors(project, class_infos);
+
+			errors.shouldEqual([`project.godot`: [`Project missing main scene`]]);
+		}),
+		it("Should fail when project main scene file is not found", () {
+			string project_path = absolutePath(`test/project_main_scene_no_file/`);
+			auto project = getGodotProject(project_path ~ `project/project.godot`);
+			auto class_infos = getCodeClasses(project_path ~ `src/`);
+
+			printInfo(project);
+
+			string[][string] errors = findProjectErrors(project, class_infos);
+
+			errors.shouldEqual([`project.godot`: [`Project main scene file not found: "Level/XXX.tscn"`]]);
+			//errors.length.shouldBeGreater(0);
+			//errors.keys[0].shouldEqual(`project.godot`);
+			//errors[`project.godot`].length.shouldBeGreater(0);
+			//errors[`project.godot`][0].shouldEqual(`Project missing main scene`);
+		})
+	);
 }

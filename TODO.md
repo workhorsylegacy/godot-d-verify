@@ -4,7 +4,7 @@
 
 # TESTS:
 
-* Project main scene is set
+X Project main scene is set
 * Project main scene file should exist
 
 * Scene resource file exists

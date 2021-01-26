@@ -5,7 +5,7 @@
 
 
 
-import std.stdio : stdout;
+import std.stdio : stdout, stderr;
 import scan_godot_project;
 import scan_d_code;
 import verify_godot_project;
@@ -26,7 +26,16 @@ int main() {
 	//
 	auto class_infos = getCodeClasses(project_path ~ `src/`);
 
-	printErrors(project, class_infos);
+	// Print any errors
+	auto project_errors = findProjectErrors(project, class_infos);
+	foreach (name, errors ; project_errors) {
+		if (errors.length == 0) continue;
+
+		stderr.writeln(name);
+		foreach (error ; errors) {
+			stderr.writeln(error);
+		}
+	}
 
 	return 0;
 }

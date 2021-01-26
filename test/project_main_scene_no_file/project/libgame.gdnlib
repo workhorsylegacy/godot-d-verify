@@ -1,0 +1,16 @@
+[general]
+
+symbol_prefix="game"
+singleton=false
+load_once=true
+reloadable=false
+
+[entry]
+
+Windows.64="res://game.dll"
+X11.64="res://libgame.so"
+
+[dependencies]
+
+Windows.64=[  ]
+X11.64=[  ]

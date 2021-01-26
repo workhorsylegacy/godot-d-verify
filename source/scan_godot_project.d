@@ -241,7 +241,7 @@ Project getGodotProject(string full_project_path) {
 	chdir(project_dir);
 
 	auto project = new Project(project_file);
-	if (project) {
+	if (project && project.main_scene_path) {
 		auto scene = new Scene(project.main_scene_path);
 		project._scenes[project.main_scene_path] = scene;
 	}
@@ -290,7 +290,7 @@ void printInfo(Project project) {
 
 	// Print out everything
 	stdout.writefln("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"); stdout.flush();
-	stdout.writefln(".project %s", project._path); stdout.flush();
+	stdout.writefln(".godot %s", project._path); stdout.flush();
 	stdout.writefln("    main_scene_path %s", project.main_scene_path); stdout.flush();
 	foreach (path, scene ; project._scenes) {
 		stdout.writefln(".tscn %s", path); stdout.flush();
