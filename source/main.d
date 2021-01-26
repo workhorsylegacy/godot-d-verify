@@ -10,23 +10,44 @@ import scan_godot_project;
 import scan_d_code;
 import verify_godot_project;
 
-int main() {
-	stdout.writefln("Verifying godot project ..."); stdout.flush();
-	version (Windows) {
-		string project_path = `C:/Users/matt/Projects/PumaGameGodot/`;
-	} else version (linux) {
-		string project_path = `/home/matt/Desktop/PumaGameGodot/`;
+
+int main(string[] args) {
+	import std.algorithm : canFind, endsWith;
+	import std.file : getcwd, chdir;
+	import std.path : dirName, buildPath;
+
+	// Change the dir to the location of the current exe
+	chdir(dirName(args[0]));
+	//stdout.writefln("getcwd: %s", getcwd()); stdout.flush();
+
+	// Get the project path
+	string project_path;
+	if (args.length == 3 && ["--project", "-p"].canFind(args[1])) {
+		project_path = args[2];
 	} else {
-		static assert(0, "Unsupported OS");
+		stderr.writefln(
+		"Verify Godot D Project\n" ~
+		"-p --project Required:\n" ~
+		"-h    --help           This help information.\n"); stderr.flush();
+		return 1;
+	}
+	//stdout.writefln("args: %s", args); stdout.flush();
+
+	// Add a / to the path if missing
+	if (! project_path.endsWith(`/`)) {
+		project_path ~= `/`;
 	}
 
-	// Scan the godot.project
-	auto project = getGodotProject(project_path ~ `project/project.godot`);
+	// Verify
+	stdout.writefln("Verifying %s ...", project_path); stdout.flush();
 
-	//
-	auto class_infos = getCodeClasses(project_path ~ `src/`);
+	// Get the godot project info
+	auto project = getGodotProject(buildPath(project_path, `project/project.godot`));
 
-	// Print any errors
+	// Get the D class info
+	auto class_infos = getCodeClasses(buildPath(project_path, `src/`));
+
+	// Find and print any errors
 	auto project_errors = findProjectErrors(project, class_infos);
 	foreach (name, errors ; project_errors) {
 		if (errors.length == 0) continue;
@@ -37,5 +58,5 @@ int main() {
 		}
 	}
 
-	return 0;
+	return project_errors.length == 0 ? 0 : 1;
 }
