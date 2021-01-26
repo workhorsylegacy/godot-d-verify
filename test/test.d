@@ -5,8 +5,8 @@
 
 import std.stdio;
 import std.file : chdir, getcwd;
-import verify_d_code : getCodeClasses;
-import verify_godot : Project, Scene, NativeScript, NativeLibrary;
+import scan_d_code : getCodeClasses;
+import scan_godot_project : Project, Scene, NativeScript, NativeLibrary;
 
 string _root_path = null;
 

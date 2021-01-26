@@ -3,7 +3,7 @@
 // Verify Godot projects that use the D Programming Language
 // https://github.com/workhorsy/godot-d-verify
 
-module verify_godot;
+module scan_godot_project;
 
 
 import std.stdio : stdout;
@@ -231,7 +231,7 @@ class NativeLibrary {
 	}
 }
 
-Project scanProject(string full_project_path) {
+Project getGodotProject(string full_project_path) {
 	import std.file : chdir, getcwd;
 	import std.path : baseName, dirName;
 

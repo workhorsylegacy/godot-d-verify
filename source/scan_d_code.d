@@ -3,7 +3,7 @@
 // Verify Godot projects that use the D Programming Language
 // https://github.com/workhorsy/godot-d-verify
 
-module verify_d_code;
+module scan_d_code;
 
 import std.stdio : stdout;
 
