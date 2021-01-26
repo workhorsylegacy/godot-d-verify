@@ -273,7 +273,7 @@ Project scanProject(string full_project_path) {
 
 		foreach (NativeScript script ; project._scripts.values()) {
 			RefExtResource resource = script._native_library;
-			if (resource._path !in project._libraries) {
+			if (resource && resource._path !in project._libraries) {
 				project._libraries[resource._path] = new NativeLibrary(resource._path);
 				is_scanning = true;
 			}
