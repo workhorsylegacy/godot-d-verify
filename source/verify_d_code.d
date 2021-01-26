@@ -52,7 +52,13 @@ KlassInfo[] getCodeClasses(string path_to_src) {
 			scope(exit) if (exists(temp_file)) remove(temp_file);
 
 			// Use DScanner to generate an XML AST of the D file
-			auto command = `dscanner.exe --ast %s > %s`.format(full_file_name, temp_file);
+			version (Windows) {
+				auto command = `dscanner.exe --ast %s > %s`.format(full_file_name, temp_file);
+			} else version (linux) {
+				auto command = `./dscanner --ast %s > %s`.format(full_file_name, temp_file);
+			} else {
+				static assert(0, "Unsupported OS");
+			}
 			//stdout.writefln("######### command: %s", command); stdout.flush();
 			auto dscanner = executeShell(command);
 			if (dscanner.status != 0) {

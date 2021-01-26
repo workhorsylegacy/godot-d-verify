@@ -9,4 +9,7 @@ bin/
 *.xml
 examples/example
 
+dscanner.exe
+dscanner
+
 .import
