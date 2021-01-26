@@ -10,9 +10,16 @@ import scan_d_code : KlassInfo;
 import scan_godot_project : Project;
 
 
-string[][string] findProjectErrors(Project project, KlassInfo[] class_infos) {
+string absolutePath(string path) {
+	import std.path : absolutePath;
+	import std.array : replace;
+	return absolutePath(path).replace(`\`, `/`);
+}
+
+string[][string] findProjectErrors(string project_path, Project project, KlassInfo[] class_infos) {
 	import std.string : format;
 	import std.algorithm : canFind;
+	import std.file : read, exists, remove, getcwd, chdir;
 	import scan_godot_project;
 
 	string[][string] retval;
@@ -21,11 +28,15 @@ string[][string] findProjectErrors(Project project, KlassInfo[] class_infos) {
 	{
 		string[] errors;
 
-		if (project._error) {
-			errors ~= "error: %s".format(project._error);
-		} else {
+		if (project._error == null) {
 			if (project.main_scene_path == null) {
 				errors ~= `Project missing main scene`;
+			} else if (! exists(project_path ~ project.main_scene_path)) {
+				auto scene = project._scenes[project.main_scene_path];
+				errors ~= `Project main scene file not found: "%s"`.format(scene._path);
+				//if (scene._error) {
+				//	errors ~= "%s".format(scene._error);
+				//}
 			}
 		}
 
@@ -38,9 +49,7 @@ string[][string] findProjectErrors(Project project, KlassInfo[] class_infos) {
 	foreach (Scene scene ; project._scenes.values()) {
 		string[] errors;
 
-		if (scene._error) {
-			errors ~= "error: %s".format(scene._error);
-		} else {
+		if (scene._error == null) {
 			// Get the class name from .tscn -> .gdns -> class_name
 			string class_name = null;
 			foreach (RefExtResource resource ; scene._resources) {
@@ -92,8 +101,8 @@ string[][string] findProjectErrors(Project project, KlassInfo[] class_infos) {
 	foreach (NativeScript script ; project._scripts.values()) {
 		string[] errors;
 
-		if (script._error) {
-			errors ~= "    error: %s".format(script._error);
+		if (script._error == null) {
+
 		}
 
 		if (errors.length > 0) {
@@ -104,8 +113,8 @@ string[][string] findProjectErrors(Project project, KlassInfo[] class_infos) {
 	foreach (NativeLibrary library ; project._libraries.values()) {
 		string[] errors;
 
-		if (library._error) {
-			errors ~= "    error: %s".format(library._error);
+		if (library._error == null) {
+
 		}
 
 		if (errors.length > 0) {
@@ -119,11 +128,10 @@ string[][string] findProjectErrors(Project project, KlassInfo[] class_infos) {
 
 unittest {
 	import BDD;
-	import std.path : absolutePath;
+
 	import scan_godot_project : getGodotProject, printInfo;
 	import scan_d_code : getCodeClasses;
-	//import std.array;
-	//import std.file : read, exists, remove, getcwd, chdir;
+	import std.file : getcwd, chdir;
 
 	//stdout.writefln("!!!!!!!!!!!!!!!!!!!!! getcwd: %s", getcwd());
 
@@ -132,15 +140,15 @@ unittest {
 			string project_path = absolutePath(`test/project_normal/`);
 			auto project = getGodotProject(project_path ~ `project/project.godot`);
 			auto class_infos = getCodeClasses(project_path ~ `src/`);
-			string[][string] errors = findProjectErrors(project, class_infos);
+			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
 
-			errors.length.shouldEqual(0);
+			errors.shouldEqual((string[][string]).init);
 		}),
 		it("Should fail when project main scene is not specified", () {
 			string project_path = absolutePath(`test/project_main_scene_no_entry/`);
 			auto project = getGodotProject(project_path ~ `project/project.godot`);
 			auto class_infos = getCodeClasses(project_path ~ `src/`);
-			string[][string] errors = findProjectErrors(project, class_infos);
+			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
 
 			errors.shouldEqual([`project.godot`: [`Project missing main scene`]]);
 		}),
@@ -149,15 +157,10 @@ unittest {
 			auto project = getGodotProject(project_path ~ `project/project.godot`);
 			auto class_infos = getCodeClasses(project_path ~ `src/`);
 
-			printInfo(project);
-
-			string[][string] errors = findProjectErrors(project, class_infos);
+//			printInfo(project);
+			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
 
 			errors.shouldEqual([`project.godot`: [`Project main scene file not found: "Level/XXX.tscn"`]]);
-			//errors.length.shouldBeGreater(0);
-			//errors.keys[0].shouldEqual(`project.godot`);
-			//errors[`project.godot`].length.shouldBeGreater(0);
-			//errors[`project.godot`][0].shouldEqual(`Project missing main scene`);
 		})
 	);
 }

@@ -5,7 +5,7 @@
 # TESTS:
 
 X Project main scene is set
-* Project main scene file should exist
+X Project main scene file should exist
 
 * Scene resource file exists
 * Scene connection signal method exists in code
