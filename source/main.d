@@ -46,7 +46,7 @@ int main(string[] args) {
 	auto class_infos = getCodeClasses(buildPath(project_path, `src/`));
 
 	// Find and print any errors
-	auto project_errors = findProjectErrors(project, class_infos);
+	auto project_errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
 	foreach (name, errors ; project_errors) {
 		if (errors.length == 0) continue;
 
