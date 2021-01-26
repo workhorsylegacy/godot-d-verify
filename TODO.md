@@ -9,6 +9,7 @@ X Project main scene is set
 
 * Scene resource file exists
 * Scene connection signal method exists in code
+* Scene connection signal method exists and has Method attribute
 
 * Script should have a native library resource
 * Script native library resource file should exist

@@ -60,7 +60,23 @@ string[][string] findProjectErrors(Project project, KlassInfo[] class_infos) {
 			foreach (class_info ; class_infos) {
 				if (class_name == "%s.%s".format(class_info._module, class_info.class_name)) {
 					foreach (method ; methods) {
-						if (! class_info.methods.canFind(method)) {
+						bool is_method_found = false;
+						bool is_attribute_found = false;
+						foreach (method_info ; class_info.methods) {
+							if (method_info.name == method) {
+								is_method_found = true;
+
+								if (method_info.attributes.canFind("Method")) {
+									is_attribute_found = true;
+								}
+							}
+						}
+
+						// found but missing attribute
+						if (is_method_found && ! is_attribute_found) {
+							errors ~= `    Signal method "%s" found in class "%s" but missing @Method attribute`.format(method, class_name);
+						// not found
+						} else if (! is_method_found) {
 							errors ~= `    Signal method "%s" not found in class "%s"`.format(method, class_name);
 						}
 					}

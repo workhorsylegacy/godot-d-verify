@@ -11,11 +11,13 @@ import dxml.dom : DOMEntity;
 
 class Node {
 	DOMEntity!string entity;
+	Node parent_node = null;
 	string path = null;
 
-	this(DOMEntity!string entity, string path) {
+	this(DOMEntity!string entity, string path, Node parent_node) {
 		this.entity = entity;
 		this.path = path;
+		this.parent_node = parent_node;
 	}
 }
 
@@ -25,17 +27,16 @@ Node readNodes(string file_name) {
 
 	auto data = cast(string)read(file_name);
 	auto dom = parseDOM(data);
-	Node node = new Node(dom, dom.name ~ `/`);
+	Node node = new Node(dom, dom.name ~ `/`, null);
 	return node;
 }
 
-// FIXME: Change to use Node rather than DOMEntity!string
-Node[] getNodes(DOMEntity!string dom, string node_path_to_find, bool is_printing=false) {
+Node[] getNodes(Node dom, string node_path_to_find, bool is_printing=false) {
 	import dxml.dom : EntityType;
 
 	Node[] retval;
 
-	Node[] nodes = [new Node(dom, dom.name ~ `/`)];
+	Node[] nodes = [new Node(dom.entity, dom.entity.name ~ `/`, dom.parent_node)];
 	while (nodes.length > 0) {
 		Node node = nodes[0];
 		nodes = nodes[1 .. $];
@@ -50,7 +51,7 @@ Node[] getNodes(DOMEntity!string dom, string node_path_to_find, bool is_printing
 		if (node.entity.type != EntityType.elementEmpty) {
 			foreach (child ; node.entity.children) {
 				if (child.type != EntityType.text) {
-					nodes ~= new Node(child, node.path ~ child.name ~ `/`);
+					nodes ~= new Node(child, node.path ~ child.name ~ `/`, node);
 				}
 			}
 		}
@@ -60,7 +61,7 @@ Node[] getNodes(DOMEntity!string dom, string node_path_to_find, bool is_printing
 }
 
 Node getNode(Node node, string node_path_to_find, bool is_printing=false) {
-	Node[] retval = node.entity.getNodes(node_path_to_find, is_printing);
+	Node[] retval = node.getNodes(node_path_to_find, is_printing);
 	if (retval.length > 0) {
 		return retval[0];
 	}
