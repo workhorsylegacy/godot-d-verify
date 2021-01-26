@@ -15,6 +15,21 @@ void printErrors(Project project, KlassInfo[] class_infos) {
 	import std.algorithm : canFind;
 
 	// Print out any errors
+	{
+		string[] errors;
+
+		if (project._error) {
+			errors ~= "    error: %s".format(project._error);
+		}
+
+		if (errors.length > 0) {
+			stderr.writefln("project: %s", project._path); stderr.flush();
+			foreach (error ; errors) {
+				stderr.writefln("%s", error); stderr.flush();
+			}
+		}
+	}
+
 	foreach (Scene scene ; project._scenes.values()) {
 		string[] errors;
 
