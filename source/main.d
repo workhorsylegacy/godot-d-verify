@@ -85,13 +85,19 @@ void printErrors(Project project, KlassInfo[] class_infos) {
 
 int main() {
 	stdout.writefln("Verifying godot project ..."); stdout.flush();
-	string project_path = `C:\Users\matt\Projects\PumaGameGodot\`;
+	version (Windows) {
+		string project_path = `C:/Users/matt/Projects/PumaGameGodot/`;
+	} else version (linux) {
+		string project_path = `/home/matt/Desktop/PumaGameGodot/`;
+	} else {
+		static assert(0, "Unsupported OS");
+	}
 
 	// Scan the godot.project
-	auto project = scanProject(project_path ~ `project\project.godot`);
+	auto project = scanProject(project_path ~ `project/project.godot`);
 
 	//
-	auto class_infos = getCodeClasses(project_path ~ `src\`);
+	auto class_infos = getCodeClasses(project_path ~ `src/`);
 
 	printErrors(project, class_infos);
 
