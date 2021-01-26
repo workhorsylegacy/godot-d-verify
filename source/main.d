@@ -5,16 +5,14 @@
 
 
 
-import std.stdio : stdout, stderr;
-import scan_godot_project;
-import scan_d_code;
-import verify_godot_project;
-
-
 int main(string[] args) {
+	import std.stdio : stdout, stderr;
 	import std.algorithm : canFind, endsWith;
 	import std.file : getcwd, chdir;
 	import std.path : dirName, buildPath;
+	import scan_godot_project : getGodotProject;
+	import scan_d_code : getCodeClasses;
+	import verify_godot_project : findProjectErrors;
 
 	// Change the dir to the location of the current exe
 	chdir(dirName(args[0]));

@@ -5,15 +5,15 @@
 
 module verify_godot_project;
 
-import std.stdio : stdout;
-import scan_godot_project;
-import scan_d_code;
+import std.stdio : stdout, stderr;
+import scan_d_code : KlassInfo;
+import scan_godot_project : Project;
 
 
 string[][string] findProjectErrors(Project project, KlassInfo[] class_infos) {
-	import std.stdio : stderr;
 	import std.string : format;
 	import std.algorithm : canFind;
+	import scan_godot_project;
 
 	string[][string] retval;
 
@@ -120,6 +120,8 @@ string[][string] findProjectErrors(Project project, KlassInfo[] class_infos) {
 unittest {
 	import BDD;
 	import std.path : absolutePath;
+	import scan_godot_project : getGodotProject;
+	import scan_d_code : getCodeClasses;
 	//import std.array;
 	//import std.file : read, exists, remove, getcwd, chdir;
 

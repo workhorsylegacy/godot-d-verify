@@ -17,8 +17,7 @@ class RefConnection {
 	string _method = null;
 
 	this(string line) {
-		import std.stdio : writefln;
-		import std.string : format, strip, split, splitLines, startsWith;
+		import std.string : format, strip, split;
 
 		foreach (chunk ; line.split(`]`)[0].split(" ")) {
 			string[] pair = chunk.split("=");
@@ -51,8 +50,7 @@ class RefExtResource {
 	string _type = null;
 
 	this(string line) {
-		import std.stdio : writefln;
-		import std.string : format, strip, split, splitLines, startsWith;
+		import std.string : format, strip, split;
 
 		foreach (chunk ; line.split(`]`)[0].split(" ")) {
 			string[] pair = chunk.split("=");
@@ -86,7 +84,6 @@ class Project {
 
 	this(string file_name) {
 		import std.string : format, strip, split, splitLines, startsWith;
-		import std.stdio : stdout, stderr, writefln;
 		import std.file : read, exists;
 		import std.regex : matchFirst;
 
@@ -120,8 +117,7 @@ class Scene {
 	RefConnection[] _connections;
 
 	this(string file_name/*, string resource_type*/) {
-		import std.string : format, strip, split, splitLines, startsWith;
-		import std.stdio : stdout, stderr, writefln;
+		import std.string : format, splitLines, startsWith;
 		import std.file : read, exists;
 
 		this._path = file_name;
@@ -157,7 +153,6 @@ class NativeScript {
 
 	this(string file_name) {
 		import std.string : format, strip, split, splitLines, startsWith;
-		import std.stdio : stdout, stderr, writefln;
 		import std.file : read, exists;
 		import std.regex : matchFirst;
 
@@ -201,7 +196,6 @@ class NativeLibrary {
 
 	this(string file_name) {
 		import std.string : format, strip, split, splitLines, startsWith;
-		import std.stdio : stdout, stderr, writefln;
 		import std.file : read, exists;
 		import std.regex : matchFirst;
 
@@ -286,8 +280,6 @@ Project getGodotProject(string full_project_path) {
 }
 
 void printInfo(Project project) {
-	import std.stdio : stdout;
-
 	// Print out everything
 	stdout.writefln("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"); stdout.flush();
 	stdout.writefln(".godot %s", project._path); stdout.flush();

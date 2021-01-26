@@ -6,10 +6,11 @@
 module read_xml;
 
 import std.stdio : stdout;
-import dxml.dom : DOMEntity;
 
 
 class Node {
+	import dxml.dom : DOMEntity;
+
 	DOMEntity!string entity;
 	Node parent_node = null;
 	string path = null;
