@@ -25,6 +25,8 @@ void reset_path(string project_path) {
 
 unittest {
 	import BDD;
+	import std.algorithm : map;
+	import std.array : array;
 
 	describe("godot_verify#Project",
 		before(delegate(){
@@ -166,9 +168,9 @@ unittest {
 			class_info._module.shouldEqual("level");
 			class_info.class_name.shouldEqual("Level");
 			class_info.base_class_name.shouldEqual("GodotScript");
-			"_ready".shouldBeIn(class_info.methods);
-			"_process".shouldBeIn(class_info.methods);
-			"onButtonPressed".shouldBeIn(class_info.methods);
+			"_ready".shouldBeIn(class_info.methods.map!(m => m.name).array);
+			"_process".shouldBeIn(class_info.methods.map!(m => m.name).array);
+			"onButtonPressed".shouldBeIn(class_info.methods.map!(m => m.name).array);
 		}),
 		it("Should fail to parse scene with missing signal method", delegate() {
 			reset_path("test/project_signal_missing/project/");
@@ -206,10 +208,10 @@ unittest {
 			class_info._module.shouldEqual("level");
 			class_info.class_name.shouldEqual("Level");
 			class_info.base_class_name.shouldEqual("GodotScript");
-			"_ready".shouldBeIn(class_info.methods);
-			"_process".shouldBeIn(class_info.methods);
-			"xxx".shouldNotBeIn(class_info.methods);
-			"onButtonPressed".shouldNotBeIn(class_info.methods);
+			"_ready".shouldBeIn(class_info.methods.map!(m => m.name).array);
+			"_process".shouldBeIn(class_info.methods.map!(m => m.name).array);
+			"xxx".shouldNotBeIn(class_info.methods.map!(m => m.name).array);
+			"onButtonPressed".shouldNotBeIn(class_info.methods.map!(m => m.name).array);
 		})
 	);
 

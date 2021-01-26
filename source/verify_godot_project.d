@@ -120,7 +120,7 @@ string[][string] findProjectErrors(Project project, KlassInfo[] class_infos) {
 unittest {
 	import BDD;
 	import std.path : absolutePath;
-	import scan_godot_project : getGodotProject;
+	import scan_godot_project : getGodotProject, printInfo;
 	import scan_d_code : getCodeClasses;
 	//import std.array;
 	//import std.file : read, exists, remove, getcwd, chdir;
