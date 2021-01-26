@@ -16,7 +16,6 @@
 			"targetName": "godot-d-verify",
 			"importPaths": ["source/"],
 			"dependencies": {
-				"dscanner": "~>0.11.0",
 				"dxml": "~>0.4.3"
 			}
 		},
@@ -30,7 +29,6 @@
 			"excludedSourceFiles": ["source/main.d"],
 			"dependencies": {
 				"bdd": "~>3.1.0",
-				"dscanner": "~>0.11.0",
 				"dxml": "~>0.4.3"
 			}
 		}
