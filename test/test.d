@@ -57,7 +57,7 @@ unittest {
 			foreach (resource ; scene._resources) {
 				resource._type.shouldEqual("PackedScene");
 				resource._path.shouldEqual("Player/Player.tscn");
-				resource.is_valid.shouldEqual(true);
+				resource.isValid.shouldEqual(true);
 			}
 		}),
 		it("Should parse scene with child resources", delegate() {
@@ -68,11 +68,11 @@ unittest {
 
 			scene._resources[0]._type.shouldEqual("Texture");
 			scene._resources[0]._path.shouldEqual("icon.png");
-			scene._resources[0].is_valid.shouldEqual(true);
+			scene._resources[0].isValid.shouldEqual(true);
 
 			scene._resources[1]._type.shouldEqual("Script");
 			scene._resources[1]._path.shouldEqual("Player/Player.gdns");
-			scene._resources[1].is_valid.shouldEqual(true);
+			scene._resources[1].isValid.shouldEqual(true);
 		}),
 		it("Should fail to parse invalid scene", delegate() {
 			auto scene = new Scene("Level/XXX.tscn");
@@ -158,7 +158,7 @@ unittest {
 			connection._from.shouldEqual("Button");
 			connection._to.shouldEqual(".");
 			connection._method.shouldEqual("on_button_pressed"); // FIXME: onButtonPressed
-			connection.is_valid.shouldEqual(true);
+			connection.isValid.shouldEqual(true);
 
 			// Make sure the D code is valid
 			chdir(_root_path);
@@ -198,7 +198,7 @@ unittest {
 			connection._from.shouldEqual("Button");
 			connection._to.shouldEqual(".");
 			connection._method.shouldEqual("xxx"); // FIXME: onButtonPressed
-			connection.is_valid.shouldEqual(true);
+			connection.isValid.shouldEqual(true);
 
 			// Make sure the D code is valid
 			chdir(_root_path);

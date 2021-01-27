@@ -31,7 +31,7 @@ class RefConnection {
 		}
 	}
 
-	bool is_valid() {
+	bool isValid() {
 		return (
 			_signal &&
 			_from &&
@@ -57,7 +57,7 @@ class RefExtResource {
 		}
 	}
 
-	bool is_valid() {
+	bool isValid() {
 		return (
 			_path &&
 			_type);
@@ -120,12 +120,12 @@ class Scene {
 		foreach (line ; data.splitLines) {
 			if (line.startsWith("[ext_resource ")) {
 				auto res = new RefExtResource(line);
-				if (res.is_valid) {
+				if (res.isValid) {
 					this._resources ~= res;
 				}
 			} else if (line.startsWith("[connection ")) {
 				auto con = new RefConnection(line);
-				if (con.is_valid) {
+				if (con.isValid) {
 					this._connections ~= con;
 				}
 			}
@@ -156,7 +156,7 @@ class NativeScript {
 		foreach (line ; data.splitLines) {
 			if (line.startsWith("[ext_resource ")) {
 				auto res = new RefExtResource(line);
-				if (res.is_valid) {
+				if (res.isValid) {
 					switch (res._type) {
 						case "GDNativeLibrary": this._native_library = res; break;
 						default: break;
