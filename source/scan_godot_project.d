@@ -29,11 +29,6 @@ class RefConnection {
 				default: break;
 			}
 		}
-/*
-		if (this.is_valid) {
-			writefln("## signal:%s, from:%s, to:%s, method:%s", _signal, _from, _to, _method);
-		}
-*/
 	}
 
 	bool is_valid() {
@@ -60,11 +55,6 @@ class RefExtResource {
 				default: break;
 			}
 		}
-/*
-		if (this.is_valid) {
-			writefln("## path:%s, type:%s", _path, _type);
-		}
-*/
 	}
 
 	bool is_valid() {
@@ -112,16 +102,14 @@ class Project {
 class Scene {
 	string _path = null;
 	string _error = null;
-//	string _resource_type = null;
 	RefExtResource[] _resources;
 	RefConnection[] _connections;
 
-	this(string file_name/*, string resource_type*/) {
+	this(string file_name) {
 		import std.string : format, splitLines, startsWith;
 		import std.file : read, exists;
 
 		this._path = file_name;
-//		this._resource_type = resource_type;
 
 		if (! exists(file_name)) {
 			this._error = "Failed to find %s file ...".format(file_name);

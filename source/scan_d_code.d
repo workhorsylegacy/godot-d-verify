@@ -68,65 +68,40 @@ KlassInfo[] getCodeClasses(string path_to_src) {
 	import std.algorithm : filter;
 	import read_xml : Node, readNodes, getNode, getNodes, getNodeText;
 
-//	string prev_dir = getcwd();
-//	path_to_src = absolutePath(path_to_src);
-//	stdout.writefln("######### prev_dir: %s", prev_dir); stdout.flush();
-//	stdout.writefln("######### path_to_src: %s", path_to_src); stdout.flush();
-//	chdir(path_to_src);
-
 	KlassInfo[] retval;
 
-//	try {
 
-		// Get all the D files in the src directory
-		auto file_names = dirEntries(path_to_src, SpanMode.shallow, false).filter!(f => f.name.endsWith(".d"));
+	// Get all the D files in the src directory
+	auto file_names = dirEntries(path_to_src, SpanMode.shallow, false).filter!(f => f.name.endsWith(".d"));
 
-		foreach (full_file_name ; file_names) {
-			//stdout.writefln("######### full_file_name: %s", full_file_name); stdout.flush();
+	foreach (full_file_name ; file_names) {
+		//stdout.writefln("######### full_file_name: %s", full_file_name); stdout.flush();
 
+		auto file_name = baseName(full_file_name);
+		string xml_ast = getCodeAstXML(full_file_name);
 
-			string xml_ast = getCodeAstXML(full_file_name);
+		// Get all the classes and methods from the XML AST
+		Node root_node = readNodes(xml_ast);
+		foreach (Node klass ; root_node.getNodes("/module/declaration/classDeclaration/")) {
+			auto info = new KlassInfo();
+			info._module = file_name.split(".")[0];
+			info.class_name = klass.getNode("classDeclaration/name/").getNodeText();
+			info.base_class_name = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText();
 
-			// Get all the classes and methods from the XML AST
-			auto file_name = baseName(full_file_name);
-			Node root_node = readNodes(xml_ast);
-			foreach (Node klass ; root_node.getNodes("/module/declaration/classDeclaration/")) {
-				auto info = new KlassInfo();
-				info._module = file_name.split(".")[0];
-				info.class_name = klass.getNode("classDeclaration/name/").getNodeText();
-				info.base_class_name = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText();
-
-				foreach (Node method_node ; klass.getNodes("classDeclaration/structBody/declaration/functionDeclaration/")) {
-					auto method = new MethodInfo();
-					method.name = method_node.getNode("functionDeclaration/name/").getNodeText();
-					foreach (Node attribute ; method_node.parent_node.getNodes("declaration/attribute/atAttribute/identifier/")) {
-						method.attributes ~= attribute.getNodeText();
-					}
-					info.methods ~= method;
+			foreach (Node method_node ; klass.getNodes("classDeclaration/structBody/declaration/functionDeclaration/")) {
+				auto method = new MethodInfo();
+				method.name = method_node.getNode("functionDeclaration/name/").getNodeText();
+				foreach (Node attribute ; method_node.parent_node.getNodes("declaration/attribute/atAttribute/identifier/")) {
+					method.attributes ~= attribute.getNodeText();
 				}
+				info.methods ~= method;
+			}
 
-				if (info.isValid()) {
-					retval ~= info;
-				}
+			if (info.isValid()) {
+				retval ~= info;
 			}
 		}
+	}
 
-/*
-		// Print all the class infos
-		foreach (info ; retval) {
-			stdout.writefln("        module: %s", info._module); stdout.flush();
-			stdout.writefln("        class_name: %s", info.class_name); stdout.flush();
-			stdout.writefln("        base_class_name: %s", info.base_class_name); stdout.flush();
-			foreach (method ; info.methods) {
-				stdout.writefln("        method: %s", method); stdout.flush();
-			}
-		}
-*/
-
-//	} catch (Exception err) {
-//		stdout.writefln("?????????????????????? err: %s", err); stdout.flush();
-//	}
-
-//	chdir(prev_dir);
 	return retval;
 }
