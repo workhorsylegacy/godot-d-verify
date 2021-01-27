@@ -22,11 +22,9 @@ class Node {
 	}
 }
 
-Node readNodes(string file_name) {
-	import std.file : read, exists;
+Node readNodes(string data) {
 	import dxml.dom : parseDOM;
 
-	auto data = cast(string)read(file_name);
 	auto dom = parseDOM(data);
 	Node node = new Node(dom, dom.name ~ `/`, null);
 	return node;

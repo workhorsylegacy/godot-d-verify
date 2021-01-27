@@ -23,14 +23,49 @@ class KlassInfo {
 	}
 }
 
-KlassInfo[] getCodeClasses(string path_to_src) {
-	import std.file : read, exists, remove, getcwd, chdir;
-	import std.process : executeShell;
-	import std.file : dirEntries, SpanMode;
-	import std.path : baseName, dirName, absolutePath;
-	import std.string : format, endsWith, split;
-	import std.algorithm : filter;
+string getCodeAstXML(string full_file_name) {
+	import std.file : read, exists, remove;
+	import std.path : baseName;
+	import std.stdio : File;
 	import create_temp_file : createTempFile;
+	import dparse.lexer : LexerConfig, StringCache, getTokensForParser;
+	import dparse.parser : parseModule;
+	import dparse.rollback_allocator : RollbackAllocator;
+	import dparse.astprinter : XMLPrinter;
+
+	// Generate a temporary file that gets auto deleted
+	auto file_name = baseName(full_file_name);
+	string temp_file = createTempFile(file_name, ".xml");
+	scope(exit) if (exists(temp_file)) remove(temp_file);
+
+	// Use Lib D Parse to generate an XML AST of the D file
+	string retval;
+	{
+		LexerConfig config;
+		auto source_code = cast(string) read(full_file_name);
+		auto cache = StringCache(StringCache.defaultBucketCount);
+		auto tokens = getTokensForParser(source_code, config, &cache);
+		RollbackAllocator rba;
+		auto mod = parseModule(tokens, file_name, &rba);
+
+		auto temp = File(temp_file, "w");
+		scope(exit) temp.close();
+
+		auto visitor = new XMLPrinter();
+		visitor.output = temp;
+		visitor.visit(mod);
+	}
+
+	retval = cast(string) read(temp_file);
+
+	return retval;
+}
+
+KlassInfo[] getCodeClasses(string path_to_src) {
+	import std.file : dirEntries, SpanMode;
+	import std.path : baseName;
+	import std.string : endsWith, split;
+	import std.algorithm : filter;
 	import read_xml : Node, readNodes, getNode, getNodes, getNodeText;
 
 //	string prev_dir = getcwd();
@@ -49,37 +84,12 @@ KlassInfo[] getCodeClasses(string path_to_src) {
 		foreach (full_file_name ; file_names) {
 			//stdout.writefln("######### full_file_name: %s", full_file_name); stdout.flush();
 
-			// Generate a temporary file that gets auto deleted
-			auto file_name = baseName(full_file_name);
-			string temp_file = createTempFile(file_name, ".xml");
-			//stdout.writefln("!!!!!!!!!! temp_file: %s", temp_file);
-			scope(exit) if (exists(temp_file)) remove(temp_file);
 
-			// Use Lib D Parse to generate an XML AST of the D file
-			{
-				import dparse.lexer : LexerConfig, StringCache, getTokensForParser;
-				import dparse.parser : parseModule;
-				import dparse.rollback_allocator : RollbackAllocator;
-				import dparse.astprinter : XMLPrinter;
-				import std.stdio : File;
-
-				LexerConfig config;
-				auto source_code = cast(string) read(full_file_name);
-				auto cache = StringCache(StringCache.defaultBucketCount);
-				auto tokens = getTokensForParser(source_code, config, &cache);
-
-				auto p = File(temp_file, "w");
-				scope(exit) p.close();
-
-				RollbackAllocator rba;
-				auto mod = parseModule(tokens, file_name, &rba);
-				auto visitor = new XMLPrinter();
-				visitor.output = p;
-				visitor.visit(mod);
-			}
+			string xml_ast = getCodeAstXML(full_file_name);
 
 			// Get all the classes and methods from the XML AST
-			Node root_node = readNodes(temp_file);
+			auto file_name = baseName(full_file_name);
+			Node root_node = readNodes(xml_ast);
 			foreach (Node klass ; root_node.getNodes("/module/declaration/classDeclaration/")) {
 				auto info = new KlassInfo();
 				info._module = file_name.split(".")[0];
