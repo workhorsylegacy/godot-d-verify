@@ -55,18 +55,27 @@ KlassInfo[] getCodeClasses(string path_to_src) {
 			//stdout.writefln("!!!!!!!!!! temp_file: %s", temp_file);
 			scope(exit) if (exists(temp_file)) remove(temp_file);
 
-			// Use DScanner to generate an XML AST of the D file
-			version (Windows) {
-				auto command = `dscanner.exe --ast %s > %s`.format(full_file_name, temp_file);
-			} else version (linux) {
-				auto command = `./dscanner --ast %s > %s`.format(full_file_name, temp_file);
-			} else {
-				static assert(0, "Unsupported OS");
-			}
-			//stdout.writefln("######### command: %s", command); stdout.flush();
-			auto dscanner = executeShell(command);
-			if (dscanner.status != 0) {
-				throw new Exception("DScanner failed: %s".format(dscanner.output));
+			// Use Lib D Parse to generate an XML AST of the D file
+			{
+				import dparse.lexer : LexerConfig, StringCache, getTokensForParser;
+				import dparse.parser : parseModule;
+				import dparse.rollback_allocator : RollbackAllocator;
+				import dparse.astprinter : XMLPrinter;
+				import std.stdio : File;
+
+				LexerConfig config;
+				auto source_code = cast(string) read(full_file_name);
+				auto cache = StringCache(StringCache.defaultBucketCount);
+				auto tokens = getTokensForParser(source_code, config, &cache);
+
+				auto p = File(temp_file, "w");
+				scope(exit) p.close();
+
+				RollbackAllocator rba;
+				auto mod = parseModule(tokens, file_name, &rba);
+				auto visitor = new XMLPrinter();
+				visitor.output = p;
+				visitor.visit(mod);
 			}
 
 			// Get all the classes and methods from the XML AST
