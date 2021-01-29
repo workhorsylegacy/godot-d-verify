@@ -1,0 +1,14 @@
+[general]
+
+symbol_prefix="simple"
+reloadable=false
+singleton=false
+load_once=true
+
+[entry]
+
+
+[dependencies]
+
+Windows.64=[  ]
+X11.64=[  ]
