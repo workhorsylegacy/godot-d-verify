@@ -21,8 +21,8 @@
 * [X] Should fail when script class does not exist in code
 
 ## Library
-* [ ] Native library has symbol_prefix
-* [ ] Native library has dll and it exits
+* [X] Should fail when native library symbol_prefix is not specified
+* [X] Should fail when native library dll/so file is not specified
 
 
 

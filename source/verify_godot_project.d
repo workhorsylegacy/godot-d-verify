@@ -150,6 +150,22 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 
 		string[] errors;
 
+		// Make sure library has symbol_prefix
+		if (library._symbol_prefix == null) {
+			errors ~= `Library missing symbol_prefix`;
+		}
+
+		// Make sure the dll/so is specified
+		version (Windows) {
+			if (library._dll_windows_path == null) {
+				errors ~= `Library missing Windows.64`;
+			}
+		} else version (linux) {
+			if (library._dll_linux_path == null) {
+				errors ~= `Library missing X11.64`;
+			}
+		}
+
 		if (errors.length > 0) {
 			retval["gdnlib: %s".format(library._path)] = errors;
 		}
@@ -243,6 +259,30 @@ unittest {
 			errors.shouldEqual([`gdns: Player/Player.gdns`:
 				[`Script missing class "player.Player"`]
 			]);
+		})
+	);
+
+	describe("verify_godot_project#library",
+		it("Should fail when native library symbol_prefix is not specified", () {
+			auto errors = setupTest(`test/project_library_no_symbol_prefix_entry/`);
+			errors.shouldEqual([`gdnlib: libsimple.gdnlib`:
+				[`Library missing symbol_prefix`]
+			]);
+		}),
+		it("Should fail when native library dll/so file is not specified", () {
+			auto errors = setupTest(`test/project_library_no_dll_entry/`);
+
+			version (Windows) {
+				errors.shouldEqual([`gdnlib: libsimple.gdnlib`:
+					[`Library missing Windows.64`]
+				]);
+			} else version (linux) {
+				errors.shouldEqual([`gdnlib: libsimple.gdnlib`:
+					[`Library missing X11.64`]
+				]);
+			}
+
+
 		})
 	);
 }
