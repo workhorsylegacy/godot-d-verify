@@ -50,7 +50,7 @@ int main(string[] args) {
 	foreach (name, errors ; project_errors) {
 		stderr.writeln(name);
 		foreach (error ; errors) {
-			stderr.writeln(error);
+			stderr.writeln("    ", error);
 		}
 	}
 
