@@ -7,6 +7,7 @@
 	"homepage": "https://github.com/workhorsy/godot-d-verify",
 	"copyright": "Copyright (c) 2021 Matthew Brennan Jones",
 	"license": "MIT",
+	"importPaths": ["source/"],
 
 	"configurations": [
 		{
@@ -14,7 +15,6 @@
 			"targetPath": ".",
 			"targetType": "executable",
 			"targetName": "godot-d-verify",
-			"importPaths": ["source/"],
 			"dependencies": {
 				"dxml": "~>0.4.3",
 				"libdparse": "~>0.17.0"
@@ -25,8 +25,6 @@
 			"targetPath": "lib",
 			"targetType": "staticLibrary",
 			"targetName": "godot-d-verify-test",
-			"importPaths": ["source/", "test/"],
-			"sourceFiles": ["test/test.d"],
 			"excludedSourceFiles": ["source/main.d"],
 			"dependencies": {
 				"bdd": "~>3.1.0",
