@@ -91,7 +91,14 @@ KlassInfo[] getCodeClasses(string path_to_src) {
 			foreach (Node method_node ; klass.getNodes("classDeclaration/structBody/declaration/functionDeclaration/")) {
 				auto method = new MethodInfo();
 				method.name = method_node.getNode("functionDeclaration/name/").getNodeText();
+
+				// @Method void blah()
 				foreach (Node attribute ; method_node.parent_node.getNodes("declaration/attribute/atAttribute/identifier/")) {
+					method.attributes ~= attribute.getNodeText();
+				}
+
+				// @Method blah()
+				foreach (Node attribute ; method_node.parent_node.getNodes("declaration/functionDeclaration/storageClass/atAttribute/identifier/")) {
 					method.attributes ~= attribute.getNodeText();
 				}
 				info.methods ~= method;
