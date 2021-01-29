@@ -7,7 +7,7 @@ module verify_godot_project;
 
 import std.stdio : stdout, stderr;
 import scan_d_code : KlassInfo;
-import scan_godot_project : Project;
+import scan_godot_project;
 
 
 string absolutePath(string path) {
@@ -16,36 +16,43 @@ string absolutePath(string path) {
 	return absolutePath(path).replace(`\`, `/`);
 }
 
-string[][string] findProjectErrors(string project_path, Project project, KlassInfo[] class_infos) {
-	import std.string : format;
-	import std.algorithm : canFind, filter;
-	import std.array : assocArray, byPair;
-	import std.file : read, exists, remove, getcwd, chdir;
-	import scan_godot_project;
+abstract class VerifyProjectVisitor {
+	string[] visit(string project_path, Project project, KlassInfo[] class_infos);
+}
 
-	string[][string] retval;
+abstract class VerifySceneVisitor {
+	string[] visit(Scene scene, string project_path, Project project, KlassInfo[] class_infos);
+}
 
-	// Check projects
-	foreach (Project proj ; [project]) {
-		if (proj._error) continue;
+abstract class VerifyScriptVisitor {
+	string[] visit(NativeScript script, string project_path, Project project, KlassInfo[] class_infos);
+}
 
+abstract class VerifyLibraryVisitor {
+	string[] visit(NativeLibrary library, string project_path, Project project, KlassInfo[] class_infos);
+}
+
+class MainSceneVerifyProjectVisitor : VerifyProjectVisitor {
+	override string[] visit(string project_path, Project project, KlassInfo[] class_infos) {
+		import std.string : format;
+		import std.file : exists;
 		string[] errors;
-		if (proj.main_scene_path == null) {
+
+		if (project.main_scene_path == null) {
 			errors ~= `Project missing main scene`;
-		} else if (! exists(project_path ~ proj.main_scene_path)) {
-			auto scene = proj._scenes[proj.main_scene_path];
+		} else if (! exists(project_path ~ project.main_scene_path)) {
+			auto scene = project._scenes[project.main_scene_path];
 			errors ~= `Project main scene file not found: "%s"`.format(scene._path);
 		}
 
-		if (errors.length > 0) {
-			retval[proj._path] = errors;
-		}
+		return errors;
 	}
+}
 
-	// Check scenes
-	foreach (Scene scene ; project._scenes.values()) {
-		if (scene._error) continue;
-
+class ResourceVerifySceneVisitor : VerifySceneVisitor {
+	override string[] visit(Scene scene, string project_path, Project project, KlassInfo[] class_infos) {
+		import std.string : format;
+		import std.file : exists;
 		string[] errors;
 
 		// Make sure the resource files exists
@@ -54,6 +61,16 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 				errors ~= `Scene resource file not found: "%s"`.format(resource._path);
 			}
 		}
+
+		return errors;
+	}
+}
+
+class SignalMethodInCodeVerifySceneVisitor : VerifySceneVisitor {
+	override string[] visit(Scene scene, string project_path, Project project, KlassInfo[] class_infos) {
+		import std.string : format;
+		import std.algorithm : canFind;
+		string[] errors;
 
 		// Get the class name from .tscn -> .gdns -> class_name
 		string class_name = null;
@@ -97,15 +114,14 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 			}
 		}
 
-		if (errors.length > 0) {
-			retval["tscn: %s".format(scene._path)] = errors;
-		}
+		return errors;
 	}
+}
 
-	// Check scripts
-	foreach (NativeScript script ; project._scripts.values()) {
-		if (script._error) continue;
-
+class NativeLibraryVerifyScriptVisitor : VerifyScriptVisitor {
+	override string[] visit(NativeScript script, string project_path, Project project, KlassInfo[] class_infos) {
+		import std.string : format;
+		import std.file : exists;
 		string[] errors;
 
 		// Make sure the resource files exists
@@ -117,10 +133,27 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 			}
 		}
 
+		return errors;
+	}
+}
+
+class ClassNameVerifyScriptVisitor : VerifyScriptVisitor {
+	override string[] visit(NativeScript script, string project_path, Project project, KlassInfo[] class_infos) {
+		string[] errors;
+
 		// Make sure script has a class name
 		if (script._class_name == null) {
 			errors ~= `Script missing class_name`;
 		}
+
+		return errors;
+	}
+}
+
+class ScriptClassInCodeVerifyScriptVisitor : VerifyScriptVisitor {
+	override string[] visit(NativeScript script, string project_path, Project project, KlassInfo[] class_infos) {
+		import std.string : format;
+		string[] errors;
 
 		// Make sure the script class is in the D code
 		if (script._class_name) {
@@ -136,21 +169,26 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 			}
 		}
 
-		if (errors.length > 0) {
-			retval["gdns: %s".format(script._path)] = errors;
-		}
+		return errors;
 	}
+}
 
-	// Check libraries
-	foreach (NativeLibrary library ; project._libraries.values()) {
-		if (library._error) continue;
-
+class SymbolPrefixVerifyLibraryVisitor : VerifyLibraryVisitor {
+	override string[] visit(NativeLibrary library, string project_path, Project project, KlassInfo[] class_infos) {
 		string[] errors;
 
 		// Make sure library has symbol_prefix
 		if (library._symbol_prefix == null) {
 			errors ~= `Library missing symbol_prefix`;
 		}
+
+		return errors;
+	}
+}
+
+class DllPathVerifyLibraryVisitor : VerifyLibraryVisitor {
+	override string[] visit(NativeLibrary library, string project_path, Project project, KlassInfo[] class_infos) {
+		string[] errors;
 
 		// Make sure the dll/so is specified
 		version (Windows) {
@@ -163,9 +201,51 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 			}
 		}
 
-		if (errors.length > 0) {
-			retval["gdnlib: %s".format(library._path)] = errors;
-		}
+		return errors;
+	}
+}
+
+string[][string] findProjectErrors(string project_path, Project project, KlassInfo[] class_infos) {
+	import std.string : format;
+	import std.algorithm : filter;
+	import std.array : assocArray, byPair;
+
+	string[][string] retval;
+
+	// Check projects
+	foreach (Project proj ; [project]) {
+		if (proj._error) continue;
+		string[] errors;
+		errors ~= new MainSceneVerifyProjectVisitor().visit(project_path, proj, class_infos);
+		if (errors.length) retval[proj._path] = errors;
+	}
+
+	// Check scenes
+	foreach (Scene scene ; project._scenes.values()) {
+		if (scene._error) continue;
+		string[] errors;
+		errors ~= new ResourceVerifySceneVisitor().visit(scene, project_path, project, class_infos);
+		errors ~= new SignalMethodInCodeVerifySceneVisitor().visit(scene, project_path, project, class_infos);
+		if (errors.length) retval["tscn: %s".format(scene._path)] = errors;
+	}
+
+	// Check scripts
+	foreach (NativeScript script ; project._scripts.values()) {
+		if (script._error) continue;
+		string[] errors;
+		errors ~= new NativeLibraryVerifyScriptVisitor().visit(script, project_path, project, class_infos);
+		errors ~= new ClassNameVerifyScriptVisitor().visit(script, project_path, project, class_infos);
+		errors ~= new ScriptClassInCodeVerifyScriptVisitor().visit(script, project_path, project, class_infos);
+		if (errors.length) retval["gdns: %s".format(script._path)] = errors;
+	}
+
+	// Check libraries
+	foreach (NativeLibrary library ; project._libraries.values()) {
+		if (library._error) continue;
+		string[] errors;
+		errors ~= new SymbolPrefixVerifyLibraryVisitor().visit(library, project_path, project, class_infos);
+		errors ~= new DllPathVerifyLibraryVisitor().visit(library, project_path, project, class_infos);
+		if (errors.length) retval["gdnlib: %s".format(library._path)] = errors;
 	}
 
 	// Remove any empty error arrays
