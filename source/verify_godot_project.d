@@ -25,70 +25,69 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 
 	string[][string] retval;
 
-	// Check project
-	{
-		string[] errors;
+	// Check projects
+	foreach (Project proj ; [project]) {
+		if (proj._error) continue;
 
-		if (project._error == null) {
-			if (project.main_scene_path == null) {
-				errors ~= `Project missing main scene`;
-			} else if (! exists(project_path ~ project.main_scene_path)) {
-				auto scene = project._scenes[project.main_scene_path];
-				errors ~= `Project main scene file not found: "%s"`.format(scene._path);
-				//if (scene._error) {
-				//	errors ~= "%s".format(scene._error);
-				//}
-			}
+		string[] errors;
+		if (proj.main_scene_path == null) {
+			errors ~= `Project missing main scene`;
+		} else if (! exists(project_path ~ proj.main_scene_path)) {
+			auto scene = proj._scenes[proj.main_scene_path];
+			errors ~= `Project main scene file not found: "%s"`.format(scene._path);
+			//if (scene._error) {
+			//	errors ~= "%s".format(scene._error);
+			//}
 		}
 
 		if (errors.length > 0) {
-			retval[project._path] = errors;
+			retval[proj._path] = errors;
 		}
 	}
 
 	// Check scenes
 	foreach (Scene scene ; project._scenes.values()) {
+		if (scene._error) continue;
+
 		string[] errors;
 
-		if (scene._error == null) {
-			// Get the class name from .tscn -> .gdns -> class_name
-			string class_name = null;
-			foreach (RefExtResource resource ; scene._resources) {
-				if (resource._type == "Script") {
-					NativeScript script = project._scripts[resource._path];
-					class_name = script._class_name;
-				}
+		// Get the class name from .tscn -> .gdns -> class_name
+		string class_name = null;
+		foreach (RefExtResource resource ; scene._resources) {
+			if (resource._type == "Script") {
+				NativeScript script = project._scripts[resource._path];
+				class_name = script._class_name;
 			}
+		}
 
-			// Get the signal method names
-			string[] methods;
-			foreach (RefConnection connection ; scene._connections) {
-				methods ~= connection._method;
-			}
+		// Get the signal method names
+		string[] methods;
+		foreach (RefConnection connection ; scene._connections) {
+			methods ~= connection._method;
+		}
 
-			// Make sure the classes have the methods
-			foreach (class_info ; class_infos) {
-				if (class_name == "%s.%s".format(class_info._module, class_info.class_name)) {
-					foreach (method ; methods) {
-						bool is_method_found = false;
-						bool is_attribute_found = false;
-						foreach (method_info ; class_info.methods) {
-							if (method_info.name == method) {
-								is_method_found = true;
+		// Make sure the classes have the methods
+		foreach (class_info ; class_infos) {
+			if (class_name == "%s.%s".format(class_info._module, class_info.class_name)) {
+				foreach (method ; methods) {
+					bool is_method_found = false;
+					bool is_attribute_found = false;
+					foreach (method_info ; class_info.methods) {
+						if (method_info.name == method) {
+							is_method_found = true;
 
-								if (method_info.attributes.canFind("Method")) {
-									is_attribute_found = true;
-								}
+							if (method_info.attributes.canFind("Method")) {
+								is_attribute_found = true;
 							}
 						}
+					}
 
-						// found but missing attribute
-						if (is_method_found && ! is_attribute_found) {
-							errors ~= `    Signal method "%s" found in class "%s" but missing @Method attribute`.format(method, class_name);
-						// not found
-						} else if (! is_method_found) {
-							errors ~= `    Signal method "%s" not found in class "%s"`.format(method, class_name);
-						}
+					// found but missing attribute
+					if (is_method_found && ! is_attribute_found) {
+						errors ~= `    Signal method "%s" found in class "%s" but missing @Method attribute`.format(method, class_name);
+					// not found
+					} else if (! is_method_found) {
+						errors ~= `    Signal method "%s" not found in class "%s"`.format(method, class_name);
 					}
 				}
 			}
@@ -99,24 +98,22 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 		}
 	}
 
+	// Check scripts
 	foreach (NativeScript script ; project._scripts.values()) {
+		if (script._error) continue;
+
 		string[] errors;
-
-		if (script._error == null) {
-
-		}
 
 		if (errors.length > 0) {
 			retval["gdns: %s".format(script._path)] = errors;
 		}
 	}
 
+	// Check libraries
 	foreach (NativeLibrary library ; project._libraries.values()) {
+		if (library._error) continue;
+
 		string[] errors;
-
-		if (library._error == null) {
-
-		}
 
 		if (errors.length > 0) {
 			retval["gdnlib: %s".format(library._path)] = errors;
