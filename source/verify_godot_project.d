@@ -144,61 +144,50 @@ unittest {
 	import scan_d_code : getCodeClasses;
 	import std.file : getcwd, chdir;
 
-	//stdout.writefln("!!!!!!!!!!!!!!!!!!!!! getcwd: %s", getcwd());
+	string[][string] setupTest(string project_path) {
+		project_path = absolutePath(project_path);
+		auto project = getGodotProject(project_path ~ `project/project.godot`);
+		auto class_infos = getCodeClasses(project_path ~ `src/`);
+		return findProjectErrors(project_path ~ `project/`, project, class_infos);
+	}
 
 	describe("verify_godot_project#project",
 		it("Should succeed on working project", () {
-			string project_path = absolutePath(`test/project_normal/`);
-			auto project = getGodotProject(project_path ~ `project/project.godot`);
-			auto class_infos = getCodeClasses(project_path ~ `src/`);
-			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
-
+			auto errors = setupTest(`test/project_normal/`);
 			errors.shouldEqual((string[][string]).init);
 		}),
 		it("Should fail when project main scene is not specified", () {
-			string project_path = absolutePath(`test/project_main_scene_no_entry/`);
-			auto project = getGodotProject(project_path ~ `project/project.godot`);
-			auto class_infos = getCodeClasses(project_path ~ `src/`);
-			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
-
-			errors.shouldEqual([`project.godot`: [`Project missing main scene`]]);
+			auto errors = setupTest(`test/project_main_scene_no_entry/`);
+			errors.shouldEqual([`project.godot`:
+				[`Project missing main scene`]
+			]);
 		}),
 		it("Should fail when project main scene file is not found", () {
-			string project_path = absolutePath(`test/project_main_scene_no_file/`);
-			auto project = getGodotProject(project_path ~ `project/project.godot`);
-			auto class_infos = getCodeClasses(project_path ~ `src/`);
-
-//			printInfo(project);
-			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
-
-			errors.shouldEqual([`project.godot`: [`Project main scene file not found: "Level/XXX.tscn"`]]);
+			auto errors = setupTest(`test/project_main_scene_no_file/`);
+			errors.shouldEqual([`project.godot`:
+				[`Project main scene file not found: "Level/XXX.tscn"`]
+			]);
 		})
 	);
 
 	describe("verify_godot_project#scene",
 		it("Should fail when scene resource file is not found", () {
-			string project_path = absolutePath(`test/project_scene_resource_missing/`);
-			auto project = getGodotProject(project_path ~ `project/project.godot`);
-			auto class_infos = getCodeClasses(project_path ~ `src/`);
-			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
-
-			errors.shouldEqual([`tscn: Level/Level.tscn`: [`Scene resource file not found: "Player/XXX.tscn"`]]);
+			auto errors = setupTest(`test/project_scene_resource_missing/`);
+			errors.shouldEqual([`tscn: Level/Level.tscn`:
+				[`Scene resource file not found: "Player/XXX.tscn"`]
+			]);
 		}),
 		it("Should fail when signal method doesn't exists in code", () {
-			string project_path = absolutePath(`test/project_scene_signal_no_code_method/`);
-			auto project = getGodotProject(project_path ~ `project/project.godot`);
-			auto class_infos = getCodeClasses(project_path ~ `src/`);
-			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
-
-			errors.shouldEqual([`tscn: Level/Level.tscn`: [`Signal method "xxx" not found in class "level.Level"`]]);
+			auto errors = setupTest(`test/project_scene_signal_no_code_method/`);
+			errors.shouldEqual([`tscn: Level/Level.tscn`:
+				[`Signal method "xxx" not found in class "level.Level"`]
+			]);
 		}),
 		it("Should fail when signal method exists but missing Method attribute", () {
-			string project_path = absolutePath(`test/project_scene_signal_no_method_attribute/`);
-			auto project = getGodotProject(project_path ~ `project/project.godot`);
-			auto class_infos = getCodeClasses(project_path ~ `src/`);
-			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
-
-			errors.shouldEqual([`tscn: Level/Level.tscn`: [`Signal method "on_button_pressed" found in class "level.Level" but missing @Method attribute`]]);
+			auto errors = setupTest(`test/project_scene_signal_no_method_attribute/`);
+			errors.shouldEqual([`tscn: Level/Level.tscn`:
+				[`Signal method "on_button_pressed" found in class "level.Level" but missing @Method attribute`]
+			]);
 		})
 	);
 }
