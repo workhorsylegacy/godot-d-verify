@@ -18,7 +18,8 @@ string absolutePath(string path) {
 
 string[][string] findProjectErrors(string project_path, Project project, KlassInfo[] class_infos) {
 	import std.string : format;
-	import std.algorithm : canFind;
+	import std.algorithm : canFind, filter;
+	import std.array : assocArray, byPair;
 	import std.file : read, exists, remove, getcwd, chdir;
 	import scan_godot_project;
 
@@ -121,6 +122,12 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 			retval["gdnlib: %s".format(library._path)] = errors;
 		}
 	}
+
+	// Remove any empty error arrays
+	retval = retval
+			.byPair
+			.filter!(pair => pair.value.length > 0)
+			.assocArray;
 
 	return retval;
 }

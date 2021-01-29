@@ -48,8 +48,6 @@ int main(string[] args) {
 	// Find and print any errors
 	auto project_errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
 	foreach (name, errors ; project_errors) {
-		if (errors.length == 0) continue;
-
 		stderr.writeln(name);
 		foreach (error ; errors) {
 			stderr.writeln(error);
