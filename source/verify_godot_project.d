@@ -35,9 +35,6 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 		} else if (! exists(project_path ~ proj.main_scene_path)) {
 			auto scene = proj._scenes[proj.main_scene_path];
 			errors ~= `Project main scene file not found: "%s"`.format(scene._path);
-			//if (scene._error) {
-			//	errors ~= "%s".format(scene._error);
-			//}
 		}
 
 		if (errors.length > 0) {
@@ -281,8 +278,6 @@ unittest {
 					[`Library missing X11.64`]
 				]);
 			}
-
-
 		})
 	);
 }

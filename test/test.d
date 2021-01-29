@@ -214,16 +214,4 @@ unittest {
 			"onButtonPressed".shouldNotBeIn(class_info.methods.map!(m => m.name).array);
 		})
 	);
-
-/*
-	describe("godot_verify#complete_project",
-		it("Should parse complete project", delegate() {
-			reset_path();
-			auto project = scanProject("project.godot");
-			printInfo(project);
-			printErrors(project);
-			generateCode();
-		})
-	);
-*/
 }
