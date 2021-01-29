@@ -1,0 +1,38 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://Level/Level.gdns" type="Script" id=2]
+
+[sub_resource type="RectangleShape2D" id=1]
+extents = Vector2( 320, 84 )
+
+[node name="Level" type="Control"]
+script = ExtResource( 2 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="Button" type="Button" parent="."]
+margin_left = 201.0
+margin_top = 33.0
+margin_right = 833.0
+margin_bottom = 197.0
+text = "Click me"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="StaticBody2D" type="StaticBody2D" parent="Button"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Button/StaticBody2D"]
+position = Vector2( 317, 81 )
+shape = SubResource( 1 )
+
+[node name="Label" type="Label" parent="."]
+margin_left = 230.0
+margin_top = 288.0
+margin_right = 870.0
+margin_bottom = 468.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+[connection signal="pressed" from="Button" to="." method="on_button_pressed"]

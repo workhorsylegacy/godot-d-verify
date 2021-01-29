@@ -11,8 +11,8 @@
 
 ## Scene
 * [X] Should fail when scene resource file is not found
-* [ ] Scene connection signal method exists in code
-* [ ] Scene connection signal method exists and has Method attribute
+* [X] Should fail when signal method doesn't exists in code
+* [X] Should fail when signal method exists but missing Method attribute
 
 ## Script
 * [ ] Script should have a native library resource

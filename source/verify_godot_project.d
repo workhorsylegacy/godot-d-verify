@@ -91,10 +91,10 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 
 					// found but missing attribute
 					if (is_method_found && ! is_attribute_found) {
-						errors ~= `    Signal method "%s" found in class "%s" but missing @Method attribute`.format(method, class_name);
+						errors ~= `Signal method "%s" found in class "%s" but missing @Method attribute`.format(method, class_name);
 					// not found
 					} else if (! is_method_found) {
-						errors ~= `    Signal method "%s" not found in class "%s"`.format(method, class_name);
+						errors ~= `Signal method "%s" not found in class "%s"`.format(method, class_name);
 					}
 				}
 			}
@@ -183,6 +183,22 @@ unittest {
 			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
 
 			errors.shouldEqual([`tscn: Level/Level.tscn`: [`Scene resource file not found: "Player/XXX.tscn"`]]);
+		}),
+		it("Should fail when signal method doesn't exists in code", () {
+			string project_path = absolutePath(`test/project_scene_signal_no_code_method/`);
+			auto project = getGodotProject(project_path ~ `project/project.godot`);
+			auto class_infos = getCodeClasses(project_path ~ `src/`);
+			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
+
+			errors.shouldEqual([`tscn: Level/Level.tscn`: [`Signal method "xxx" not found in class "level.Level"`]]);
+		}),
+		it("Should fail when signal method exists but missing Method attribute", () {
+			string project_path = absolutePath(`test/project_scene_signal_no_method_attribute/`);
+			auto project = getGodotProject(project_path ~ `project/project.godot`);
+			auto class_infos = getCodeClasses(project_path ~ `src/`);
+			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
+
+			errors.shouldEqual([`tscn: Level/Level.tscn`: [`Signal method "on_button_pressed" found in class "level.Level" but missing @Method attribute`]]);
 		})
 	);
 }
