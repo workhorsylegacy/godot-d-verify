@@ -51,6 +51,13 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 
 		string[] errors;
 
+		// Make sure the resource files exists
+		foreach (RefExtResource resource ; scene._resources) {
+			if (! exists(project_path ~ resource._path)) {
+				errors ~= `Scene resource file not found: "%s"`.format(resource._path);
+			}
+		}
+
 		// Get the class name from .tscn -> .gdns -> class_name
 		string class_name = null;
 		foreach (RefExtResource resource ; scene._resources) {
@@ -139,7 +146,7 @@ unittest {
 
 	//stdout.writefln("!!!!!!!!!!!!!!!!!!!!! getcwd: %s", getcwd());
 
-	describe("verify_godot_project#findProjectErrors",
+	describe("verify_godot_project#project",
 		it("Should succeed on working project", () {
 			string project_path = absolutePath(`test/project_normal/`);
 			auto project = getGodotProject(project_path ~ `project/project.godot`);
@@ -165,6 +172,17 @@ unittest {
 			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
 
 			errors.shouldEqual([`project.godot`: [`Project main scene file not found: "Level/XXX.tscn"`]]);
+		})
+	);
+
+	describe("verify_godot_project#scene",
+		it("Should fail when scene resource file is not found", () {
+			string project_path = absolutePath(`test/project_scene_resource_missing/`);
+			auto project = getGodotProject(project_path ~ `project/project.godot`);
+			auto class_infos = getCodeClasses(project_path ~ `src/`);
+			string[][string] errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
+
+			errors.shouldEqual([`tscn: Level/Level.tscn`: [`Scene resource file not found: "Player/XXX.tscn"`]]);
 		})
 	);
 }
