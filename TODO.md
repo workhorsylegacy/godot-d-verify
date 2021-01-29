@@ -15,10 +15,10 @@
 * [X] Should fail when signal method exists but missing Method attribute
 
 ## Script
-* [ ] Script should have a native library resource
-* [ ] Script native library resource file should exist
-* [ ] Script class_name is set
-* [ ] Script class exists
+* [X] Should fail when script native library is not specified
+* [X] Should fail when script native library file is not found
+* [X] Should fail when script class_name is not specified
+* [X] Should fail when script class does not exist in code
 
 ## Library
 * [ ] Native library has symbol_prefix

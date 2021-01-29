@@ -1,0 +1,17 @@
+{
+	"name": "game",
+	"authors": [
+		"Matthew Brennan Jones <matthew.brennan.jones@gmail.com>"
+	],
+	"description": "Example of a Godot-D project",
+	"copyright": "Copyright (c) 2021 Matthew Brennan Jones",
+	"license": "MIT",
+
+	"targetType": "dynamicLibrary",
+	"targetPath": "project",
+
+	"dependencies":
+	{
+		"godot-d": "0.1.9"
+	}
+}

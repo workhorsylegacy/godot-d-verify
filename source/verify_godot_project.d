@@ -111,6 +111,34 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 
 		string[] errors;
 
+		// Make sure the resource files exists
+		if (script._native_library is null) {
+			errors ~= `Script missing native library`;
+		} else {
+			if (! exists(project_path ~ script._native_library._path)) {
+				errors ~= `Script resource file not found: "%s"`.format(script._native_library._path);
+			}
+		}
+
+		// Make sure script has a class name
+		if (script._class_name == null) {
+			errors ~= `Script missing class_name`;
+		}
+
+		// Make sure the script class is in the D code
+		if (script._class_name) {
+			bool has_class = false;
+			foreach (class_info ; class_infos) {
+				if (script._class_name == "%s.%s".format(class_info._module, class_info.class_name)) {
+					has_class = true;
+				}
+			}
+
+			if (! has_class) {
+				errors ~= `Script missing class "%s"`.format(script._class_name);
+			}
+		}
+
 		if (errors.length > 0) {
 			retval["gdns: %s".format(script._path)] = errors;
 		}
@@ -187,6 +215,33 @@ unittest {
 			auto errors = setupTest(`test/project_scene_signal_no_method_attribute/`);
 			errors.shouldEqual([`tscn: Level/Level.tscn`:
 				[`Signal method "on_button_pressed" found in class "level.Level" but missing @Method attribute`]
+			]);
+		})
+	);
+
+	describe("verify_godot_project#script",
+		it("Should fail when script native library is not specified", () {
+			auto errors = setupTest(`test/project_script_resource_no_entry/`);
+			errors.shouldEqual([`gdns: Player/Player.gdns`:
+				[`Script missing native library`]
+			]);
+		}),
+		it("Should fail when script native library file is not found", () {
+			auto errors = setupTest(`test/project_script_resource_no_file/`);
+			errors.shouldEqual([`gdns: Player/Player.gdns`:
+				[`Script resource file not found: "XXX.gdnlib"`]
+			]);
+		}),
+		it("Should fail when script class_name is not specified", () {
+			auto errors = setupTest(`test/project_script_no_class_name/`);
+			errors.shouldEqual([`gdns: Player/Player.gdns`:
+				[`Script missing class_name`]
+			]);
+		}),
+		it("Should fail when script class does not exist in code", () {
+			auto errors = setupTest(`test/project_script_no_code_class/`);
+			errors.shouldEqual([`gdns: Player/Player.gdns`:
+				[`Script missing class "player.Player"`]
 			]);
 		})
 	);

@@ -1,0 +1,7 @@
+[gd_resource type="NativeScript" load_steps=2 format=2]
+
+
+[resource]
+resource_name = "Player"
+class_name = "player.Player"
+library = ExtResource( 1 )
