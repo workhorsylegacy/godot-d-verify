@@ -10,6 +10,16 @@ import scan_d_code : KlassInfo;
 import scan_godot_project;
 
 
+
+T[] sortBy(T, string field_name)(T[] things) {
+	import std.algorithm : sort;
+	import std.array : array;
+
+	alias sortFilter = (a, b) => mixin("a." ~ field_name ~ " < b." ~ field_name);
+
+	return things.sort!(sortFilter).array;
+}
+
 string absolutePath(string path) {
 	import std.path : absolutePath;
 	import std.array : replace;
@@ -56,7 +66,7 @@ class ResourceVerifySceneVisitor : VerifySceneVisitor {
 		string[] errors;
 
 		// Make sure the resource files exists
-		foreach (RefExtResource resource ; scene._resources) {
+		foreach (resource ; scene._resources.sortBy!(RefExtResource, "_path")) {
 			if (! exists(project_path ~ resource._path)) {
 				errors ~= `Scene resource file not found: "%s"`.format(resource._path);
 			}
@@ -74,7 +84,7 @@ class SignalMethodInCodeVerifySceneVisitor : VerifySceneVisitor {
 
 		// Get the class name from .tscn -> .gdns -> class_name
 		string class_name = null;
-		foreach (RefExtResource resource ; scene._resources) {
+		foreach (resource ; scene._resources.sortBy!(RefExtResource, "_path")) {
 			if (resource._type == "Script") {
 				NativeScript script = project._scripts[resource._path];
 				class_name = script._class_name;
@@ -88,7 +98,7 @@ class SignalMethodInCodeVerifySceneVisitor : VerifySceneVisitor {
 		}
 
 		// Make sure the classes have the methods
-		foreach (class_info ; class_infos) {
+		foreach (class_info ; class_infos.sortBy!(KlassInfo, "class_name")) {
 			if (class_name == "%s.%s".format(class_info._module, class_info.class_name)) {
 				foreach (method ; methods) {
 					bool is_method_found = false;
@@ -158,7 +168,7 @@ class ScriptClassInCodeVerifyScriptVisitor : VerifyScriptVisitor {
 		// Make sure the script class is in the D code
 		if (script._class_name) {
 			bool has_class = false;
-			foreach (class_info ; class_infos) {
+			foreach (class_info ; class_infos.sortBy!(KlassInfo, "class_name")) {
 				if (script._class_name == "%s.%s".format(class_info._module, class_info.class_name)) {
 					has_class = true;
 				}
@@ -221,7 +231,7 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 	}
 
 	// Check scenes
-	foreach (Scene scene ; project._scenes.values()) {
+	foreach (scene ; project._scenes.values.sortBy!(Scene, "_path")) {
 		if (scene._error) continue;
 		string[] errors;
 		errors ~= new ResourceVerifySceneVisitor().visit(scene, project_path, project, class_infos);
@@ -230,7 +240,7 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 	}
 
 	// Check scripts
-	foreach (NativeScript script ; project._scripts.values()) {
+	foreach (script ; project._scripts.values.sortBy!(NativeScript, "_path")) {
 		if (script._error) continue;
 		string[] errors;
 		errors ~= new NativeLibraryVerifyScriptVisitor().visit(script, project_path, project, class_infos);
@@ -240,7 +250,7 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 	}
 
 	// Check libraries
-	foreach (NativeLibrary library ; project._libraries.values()) {
+	foreach (library ; project._libraries.values.sortBy!(NativeLibrary, "_path")) {
 		if (library._error) continue;
 		string[] errors;
 		errors ~= new SymbolPrefixVerifyLibraryVisitor().visit(library, project_path, project, class_infos);

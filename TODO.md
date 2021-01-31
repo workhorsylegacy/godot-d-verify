@@ -29,6 +29,7 @@
 
 # TODO:
 
+* [ ] Make sure it scans all scenes in folder, instead of just the ones referenced in scripts.
+* [ ] Make sure GDscript resources exists too
 
 * [ ] Make sure image resources are present too
-* [ ] Make sure GDscript resources exists too
