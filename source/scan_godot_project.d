@@ -69,6 +69,7 @@ class Project {
 	string _path = null;
 	string _error = null;
 	Scene[string] _scenes;
+	GDScript[string] _gdscripts;
 	NativeScript[string] _scripts;
 	NativeLibrary[string] _libraries;
 
@@ -129,6 +130,23 @@ class Scene {
 					this._connections ~= con;
 				}
 			}
+		}
+	}
+}
+
+class GDScript {
+	string _path = null;
+	string _error = null;
+
+	this(string file_name) {
+		import std.string : format;
+		import std.file : exists;
+
+		this._path = file_name;
+
+		if (! exists(file_name)) {
+			this._error = "Failed to find %s file ...".format(file_name);
+			return;
 		}
 	}
 }
@@ -215,7 +233,7 @@ class NativeLibrary {
 
 Project getGodotProject(string full_project_path) {
 	import std.file : chdir, getcwd;
-	import std.path : baseName, dirName;
+	import std.path : extension, baseName, dirName;
 
 	string prev_dir = getcwd();
 	string project_file = baseName(full_project_path);
@@ -243,11 +261,23 @@ Project getGodotProject(string full_project_path) {
 						break;
 					case "Script":
 						if (resource._path !in project._scripts) {
-							project._scripts[resource._path] = new NativeScript(resource._path);
-							is_scanning = true;
+							switch (extension(resource._path)) {
+								case ".gdns":
+									project._scripts[resource._path] = new NativeScript(resource._path);
+									is_scanning = true;
+									break;
+								case ".gd":
+									project._gdscripts[resource._path] = new GDScript(resource._path);
+									//is_scanning = true;
+									break;
+								default:
+									stdout.writefln("!!!!!! unexpected resource script extension: %s", resource._path); stdout.flush();
+									break;
+							}
 						}
 						break;
 					default:
+						//stdout.writefln("!!!!!! unexpected resource type: %s", resource._type); stdout.flush();
 						break;
 				}
 			}
@@ -334,12 +364,15 @@ unittest {
 			auto scene = new Scene("Level/Level.tscn");
 			scene._path.shouldEqual("Level/Level.tscn");
 			scene._error.shouldBeNull();
-			scene._resources.length.shouldEqual(1);
-			foreach (resource ; scene._resources) {
-				resource._type.shouldEqual("PackedScene");
-				resource._path.shouldEqual("Player/Player.tscn");
-				resource.isValid.shouldEqual(true);
-			}
+			scene._resources.length.shouldEqual(2);
+
+			scene._resources[0]._type.shouldEqual("PackedScene");
+			scene._resources[0]._path.shouldEqual("Player/Player.tscn");
+			scene._resources[0].isValid.shouldEqual(true);
+
+			scene._resources[1]._type.shouldEqual("PackedScene");
+			scene._resources[1]._path.shouldEqual("Box2/Box2.tscn");
+			scene._resources[1].isValid.shouldEqual(true);
 		}),
 		it("Should parse scene with child resources", delegate() {
 			auto scene = new Scene("Player/Player.tscn");

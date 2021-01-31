@@ -80,16 +80,20 @@ class SignalMethodInCodeVerifySceneVisitor : VerifySceneVisitor {
 	override string[] visit(Scene scene, string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
 		import std.algorithm : canFind;
+		import std.path : extension;
 		string[] errors;
 
 		// Get the class name from .tscn -> .gdns -> class_name
 		string class_name = null;
 		foreach (resource ; scene._resources.sortBy!(RefExtResource, "_path")) {
-			if (resource._type == "Script") {
+			if (resource._type == "Script" && extension(resource._path) == ".gdns") {
 				NativeScript script = project._scripts[resource._path];
 				class_name = script._class_name;
 			}
 		}
+
+		// Just return if there is no class name
+		if (class_name == null) return errors;
 
 		// Get the signal method names
 		string[] methods;
