@@ -7,6 +7,7 @@ module godot_project_verify;
 
 import std.stdio : stdout, stderr;
 import scan_d_code : KlassInfo;
+import godot_project;
 import godot_project_parse;
 
 
