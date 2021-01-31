@@ -81,29 +81,25 @@ unittest {
 	import BDD;
 	import std.algorithm : map;
 	import std.array : array;
-	import std.file : chdir, getcwd;
 	import scan_d_code : getCodeClasses;
 
-	string _root_path = null;
-
-	void reset_path(string project_path) {
+	string absolutePath(string path) {
 		import std.path : absolutePath;
-		import std.path : buildPath;
-
-		if (! _root_path) {
-			_root_path = getcwd();
-		}
-		//writefln(_root_path);
-		//writefln(buildPath(_root_path, project_path));
-		chdir(buildPath(_root_path, project_path));
+		import std.array : replace;
+		return absolutePath(path).replace(`\`, `/`);
 	}
 
 	describe("godot_project_parse#SceneSignal",
 		it("Should parse scene with signal", delegate() {
-			reset_path("test/project_signal/project/");
+			string project_path = absolutePath(`test/project_signal/`);
+			auto project = parseProject(project_path ~ `project/project.godot`);
+			auto class_infos = getCodeClasses(project_path ~ `src/`);
+
+			project.shouldNotBeNull();
+			project._scenes.length.shouldEqual(1);
 
 			// Make sure the scene is valid
-			auto scene = new Scene("Level/Level.tscn");
+			auto scene = project._scenes.values()[0];
 			scene._path.shouldEqual("Level/Level.tscn");
 			scene._error.shouldBeNull();
 			scene._resources.length.shouldEqual(1);
@@ -114,7 +110,7 @@ unittest {
 			resource._path.shouldEqual("Level/Level.gdns");
 
 			// Make sure the scene's script is valid
-			auto script = new NativeScript(resource._path);
+			auto script = project._scripts[resource._path];
 			script._error.shouldBeNull();
 			script._class_name.shouldEqual("level.Level");
 			scene._connections.length.shouldEqual(1);
@@ -128,8 +124,6 @@ unittest {
 			connection.isValid.shouldEqual(true);
 
 			// Make sure the D code is valid
-			chdir(_root_path);
-			auto class_infos = getCodeClasses("test/project_signal/src/");
 			class_infos.length.shouldEqual(1);
 			auto class_info = class_infos[0];
 			class_info._module.shouldEqual("level");
@@ -140,10 +134,15 @@ unittest {
 			"onButtonPressed".shouldBeIn(class_info.methods.map!(m => m.name).array);
 		}),
 		it("Should fail to parse scene with missing signal method", delegate() {
-			reset_path("test/project_signal_missing/project/");
+			string project_path = absolutePath(`test/project_signal_missing/`);
+			auto project = parseProject(project_path ~ `project/project.godot`);
+			auto class_infos = getCodeClasses(project_path ~ `src/`);
+
+			project.shouldNotBeNull();
+			project._scenes.length.shouldEqual(1);
 
 			// Made sure the scene is valid
-			auto scene = new Scene("Level/Level.tscn");
+			auto scene = project._scenes.values[0];
 			scene._path.shouldEqual("Level/Level.tscn");
 			scene._error.shouldBeNull();
 			scene._resources.length.shouldEqual(1);
@@ -154,7 +153,7 @@ unittest {
 			resource._path.shouldEqual("Level/Level.gdns");
 
 			// Make sure the scene's script is valid
-			auto script = new NativeScript(resource._path);
+			auto script = project._scripts[resource._path];
 			script._error.shouldBeNull();
 			script._class_name.shouldEqual("level.Level");
 			scene._connections.length.shouldEqual(1);
@@ -168,8 +167,6 @@ unittest {
 			connection.isValid.shouldEqual(true);
 
 			// Make sure the D code is valid
-			chdir(_root_path);
-			auto class_infos = getCodeClasses("test/project_signal_missing/src/");
 			class_infos.length.shouldEqual(1);
 			auto class_info = class_infos[0];
 			class_info._module.shouldEqual("level");

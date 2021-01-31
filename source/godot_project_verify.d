@@ -70,7 +70,6 @@ unittest {
 
 	import godot_project_parse : parseProject;
 	import scan_d_code : getCodeClasses;
-	import std.file : getcwd, chdir;
 
 	string[][string] setupTest(string project_path) {
 		project_path = absolutePath(project_path);
