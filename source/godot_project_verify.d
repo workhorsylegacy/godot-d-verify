@@ -207,10 +207,10 @@ class MainSceneVerifyProjectVisitor : VerifyProjectVisitor {
 		import std.file : exists;
 		string[] errors;
 
-		if (project.main_scene_path == null) {
+		if (project._main_scene_path == null) {
 			errors ~= `Project missing main scene`;
-		} else if (! exists(project_path ~ project.main_scene_path)) {
-			auto scene = project._scenes[project.main_scene_path];
+		} else if (! exists(project_path ~ project._main_scene_path)) {
+			auto scene = project._scenes[project._main_scene_path];
 			errors ~= `Project main scene file not found: "%s"`.format(scene._path);
 		}
 

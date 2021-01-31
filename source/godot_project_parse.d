@@ -65,7 +65,7 @@ class RefExtResource {
 }
 
 class Project {
-	string main_scene_path = null;
+	string _main_scene_path = null;
 	string _path = null;
 	string _error = null;
 	Scene[string] _scenes;
@@ -94,7 +94,7 @@ class Project {
 			}
 
 			if (section == "[application]" && line.startsWith("run/main_scene=")) {
-				this.main_scene_path = line.split("run/main_scene=")[1].strip(`"`).split(`res://`)[1];
+				this._main_scene_path = line.split("run/main_scene=")[1].strip(`"`).split(`res://`)[1];
 			}
 		}
 	}
@@ -241,9 +241,9 @@ Project parseProject(string full_project_path) {
 	chdir(project_dir);
 
 	auto project = new Project(project_file);
-	if (project && project.main_scene_path) {
-		auto scene = new Scene(project.main_scene_path);
-		project._scenes[project.main_scene_path] = scene;
+	if (project && project._main_scene_path) {
+		auto scene = new Scene(project._main_scene_path);
+		project._scenes[project._main_scene_path] = scene;
 	}
 
 	// Scan all the scenes, scripts, and libraries
@@ -301,7 +301,7 @@ void printInfo(Project project) {
 	// Print out everything
 	stdout.writefln("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"); stdout.flush();
 	stdout.writefln(".godot %s", project._path); stdout.flush();
-	stdout.writefln("    main_scene_path %s", project.main_scene_path); stdout.flush();
+	stdout.writefln("    main_scene_path %s", project._main_scene_path); stdout.flush();
 	foreach (path, scene ; project._scenes) {
 		stdout.writefln(".tscn %s", path); stdout.flush();
 		stdout.writefln("    _error: %s", scene._error); stdout.flush();
