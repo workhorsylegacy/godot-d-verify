@@ -68,7 +68,7 @@ string[][string] verifyProject(string project_path, Project project, KlassInfo[]
 unittest {
 	import BDD;
 
-	import godot_project_parse : parseProject, printInfo;
+	import godot_project_parse : parseProject;
 	import scan_d_code : getCodeClasses;
 	import std.file : getcwd, chdir;
 
