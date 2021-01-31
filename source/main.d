@@ -10,9 +10,9 @@ int main(string[] args) {
 	import std.algorithm : canFind, endsWith;
 	import std.file : getcwd, chdir;
 	import std.path : dirName, buildPath;
-	import scan_godot_project : getGodotProject;
+	import godot_project_parse : parseProject;
 	import scan_d_code : getCodeClasses;
-	import verify_godot_project : findProjectErrors;
+	import godot_project_verify : verifyProject;
 
 	// Change the dir to the location of the current exe
 	chdir(dirName(args[0]));
@@ -40,13 +40,13 @@ int main(string[] args) {
 	stdout.writefln("Verifying %s ...", project_path); stdout.flush();
 
 	// Get the godot project info
-	auto project = getGodotProject(buildPath(project_path, `project/project.godot`));
+	auto project = parseProject(buildPath(project_path, `project/project.godot`));
 
 	// Get the D class info
 	auto class_infos = getCodeClasses(buildPath(project_path, `src/`));
 
 	// Find and print any errors
-	auto project_errors = findProjectErrors(project_path ~ `project/`, project, class_infos);
+	auto project_errors = verifyProject(project_path ~ `project/`, project, class_infos);
 	foreach (name, errors ; project_errors) {
 		stderr.writeln(name);
 		foreach (error ; errors) {

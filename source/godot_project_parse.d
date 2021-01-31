@@ -3,7 +3,7 @@
 // Verify Godot projects that use the D Programming Language
 // https://github.com/workhorsy/godot-d-verify
 
-module scan_godot_project;
+module godot_project_parse;
 
 
 import std.stdio : stdout;
@@ -231,7 +231,7 @@ class NativeLibrary {
 	}
 }
 
-Project getGodotProject(string full_project_path) {
+Project parseProject(string full_project_path) {
 	import std.file : chdir, getcwd;
 	import std.path : extension, baseName, dirName;
 
@@ -323,7 +323,7 @@ unittest {
 	import std.array : array;
 	import std.file : chdir, getcwd;
 	import scan_d_code : getCodeClasses;
-	import scan_godot_project : Project, Scene, NativeScript, NativeLibrary;
+	import godot_project_parse : Project, Scene, NativeScript, NativeLibrary;
 
 	string _root_path = null;
 
@@ -339,7 +339,7 @@ unittest {
 		chdir(buildPath(_root_path, project_path));
 	}
 
-	describe("godot_verify#Project",
+	describe("godot_project_parse#Project",
 		before(delegate(){
 			reset_path("test/project_normal/project/");
 		}),
@@ -356,7 +356,7 @@ unittest {
 		})
 	);
 
-	describe("godot_verify#Scene",
+	describe("godot_project_parse#Scene",
 		before(delegate(){
 			reset_path("test/project_normal/project/");
 		}),
@@ -397,7 +397,7 @@ unittest {
 		})
 	);
 
-	describe("godot_verify#NativeScript",
+	describe("godot_project_parse#NativeScript",
 		before(delegate(){
 			reset_path("test/project_normal/project/");
 		}),
@@ -422,7 +422,7 @@ unittest {
 		})
 	);
 
-	describe("godot_verify#NativeLibrary",
+	describe("godot_project_parse#NativeLibrary",
 		before(delegate(){
 			reset_path("test/project_normal/project/");
 		}),
@@ -445,7 +445,7 @@ unittest {
 		})
 	);
 
-	describe("godot_verify#SceneSignal",
+	describe("godot_project_parse#SceneSignal",
 		it("Should parse scene with signal", delegate() {
 			reset_path("test/project_signal/project/");
 

@@ -3,11 +3,11 @@
 // Verify Godot projects that use the D Programming Language
 // https://github.com/workhorsy/godot-d-verify
 
-module verify_godot_project;
+module godot_project_verify;
 
 import std.stdio : stdout, stderr;
 import scan_d_code : KlassInfo;
-import scan_godot_project;
+import godot_project_parse;
 
 
 
@@ -219,7 +219,7 @@ class DllPathVerifyLibraryVisitor : VerifyLibraryVisitor {
 	}
 }
 
-string[][string] findProjectErrors(string project_path, Project project, KlassInfo[] class_infos) {
+string[][string] verifyProject(string project_path, Project project, KlassInfo[] class_infos) {
 	import std.string : format;
 	import std.algorithm : filter;
 	import std.array : assocArray, byPair;
@@ -275,18 +275,18 @@ string[][string] findProjectErrors(string project_path, Project project, KlassIn
 unittest {
 	import BDD;
 
-	import scan_godot_project : getGodotProject, printInfo;
+	import godot_project_parse : parseProject, printInfo;
 	import scan_d_code : getCodeClasses;
 	import std.file : getcwd, chdir;
 
 	string[][string] setupTest(string project_path) {
 		project_path = absolutePath(project_path);
-		auto project = getGodotProject(project_path ~ `project/project.godot`);
+		auto project = parseProject(project_path ~ `project/project.godot`);
 		auto class_infos = getCodeClasses(project_path ~ `src/`);
-		return findProjectErrors(project_path ~ `project/`, project, class_infos);
+		return verifyProject(project_path ~ `project/`, project, class_infos);
 	}
 
-	describe("verify_godot_project#project",
+	describe("godot_project_verify#project",
 		it("Should succeed on working project", () {
 			auto errors = setupTest(`test/project_normal/`);
 			errors.shouldEqual((string[][string]).init);
@@ -305,7 +305,7 @@ unittest {
 		})
 	);
 
-	describe("verify_godot_project#scene",
+	describe("godot_project_verify#scene",
 		it("Should fail when scene resource file is not found", () {
 			auto errors = setupTest(`test/project_scene_resource_missing/`);
 			errors.shouldEqual([`tscn: Level/Level.tscn`:
@@ -326,7 +326,7 @@ unittest {
 		})
 	);
 
-	describe("verify_godot_project#script",
+	describe("godot_project_verify#script",
 		it("Should fail when script native library is not specified", () {
 			auto errors = setupTest(`test/project_script_resource_no_entry/`);
 			errors.shouldEqual([`gdns: Player/Player.gdns`:
@@ -353,7 +353,7 @@ unittest {
 		})
 	);
 
-	describe("verify_godot_project#library",
+	describe("godot_project_verify#library",
 		it("Should fail when native library symbol_prefix is not specified", () {
 			auto errors = setupTest(`test/project_library_no_symbol_prefix_entry/`);
 			errors.shouldEqual([`gdnlib: libsimple.gdnlib`:
