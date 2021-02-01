@@ -234,11 +234,7 @@ class NativeLibrary {
 
 unittest {
 	import BDD;
-	import std.algorithm : map;
-	import std.array : array;
 	import std.file : chdir, getcwd;
-	import scan_d_code : getCodeClasses;
-	//import godot_project_parse : Project, Scene, NativeScript, NativeLibrary;
 
 	string _root_path = null;
 
@@ -249,8 +245,7 @@ unittest {
 		if (! _root_path) {
 			_root_path = getcwd();
 		}
-		//writefln(_root_path);
-		//writefln(buildPath(_root_path, project_path));
+
 		chdir(buildPath(_root_path, project_path));
 	}
 
