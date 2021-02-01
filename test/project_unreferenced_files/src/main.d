@@ -3,16 +3,16 @@ import godot;
 import std.stdio : writefln, writeln;
 
 
-import level : Level;
+import player : Player;
 
 mixin GodotNativeLibrary!(
-	"simple",
-	Level,
+	"game",
+	Player,
 
 	(GodotInitOptions o) {
-
+		writeln("Library initialized");
 	},
 	(GodotTerminateOptions o) {
-
+		writeln("Library terminated");
 	}
 );

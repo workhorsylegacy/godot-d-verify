@@ -15,12 +15,9 @@ _global_script_class_icons={
 
 [application]
 
-config/name="Project Signal Missing"
+config/name="Project Normal"
 run/main_scene="res://Level/Level.tscn"
-
-[display]
-
-window/vsync/use_vsync=false
+config/icon="res://icon.png"
 
 [rendering]
 

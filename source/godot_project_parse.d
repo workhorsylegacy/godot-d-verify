@@ -12,63 +12,50 @@ import godot_project;
 
 
 Project parseProject(string full_project_path) {
-	import std.file : chdir, getcwd;
+	import std.file : chdir, getcwd, dirEntries, SpanMode;
 	import std.path : extension, baseName, dirName;
+	import std.array : replace, array;
+	import std.algorithm : filter, map, canFind;
+	import std.string : chompPrefix, stripLeft;
 
+	// Get the directory path
 	string prev_dir = getcwd();
 	string project_file = baseName(full_project_path);
 	string project_dir = dirName(full_project_path);
 	chdir(project_dir);
 
-	auto project = new Project(project_file);
-	if (project && project._main_scene_path) {
-		auto scene = new Scene(project._main_scene_path);
-		project._scenes[project._main_scene_path] = scene;
-	}
+	// Get the paths of all the files to scan
+	immutable string[] extensions = [".gdns", ".tscn", ".gdnlib", ".gd"];
+	string[] files_to_scan = "project.godot" ~
+			dirEntries(project_dir, SpanMode.depth)
+			.filter!(e => extensions.canFind(e.name.extension))
+			.filter!(e => e.isFile)
+			.map!(e => e.name.replace(`\`, `/`))
+			.map!(e => e.chompPrefix(project_dir))
+			.map!(e => e.stripLeft(`/`))
+			.array;
 
-	// Scan all the scenes, scripts, and libraries
-	bool is_scanning = true;
-	while (is_scanning) {
-		is_scanning = false;
-		foreach (Scene scene ; project._scenes.values()) {
-			foreach (RefExtResource resource ; scene._resources) {
-				switch (resource._type) {
-					case "PackedScene":
-						if (resource._path !in project._scenes) {
-							project._scenes[resource._path] = new Scene(resource._path);
-							is_scanning = true;
-						}
-						break;
-					case "Script":
-						if (resource._path !in project._scripts) {
-							switch (extension(resource._path)) {
-								case ".gdns":
-									project._scripts[resource._path] = new NativeScript(resource._path);
-									is_scanning = true;
-									break;
-								case ".gd":
-									project._gdscripts[resource._path] = new GDScript(resource._path);
-									//is_scanning = true;
-									break;
-								default:
-									stdout.writefln("!!!!!! unexpected resource script extension: %s", resource._path); stdout.flush();
-									break;
-							}
-						}
-						break;
-					default:
-						//stdout.writefln("!!!!!! unexpected resource type: %s", resource._type); stdout.flush();
-						break;
-				}
-			}
-		}
-
-		foreach (NativeScript script ; project._scripts.values()) {
-			RefExtResource resource = script._native_library;
-			if (resource && resource._path !in project._libraries) {
-				project._libraries[resource._path] = new NativeLibrary(resource._path);
-				is_scanning = true;
-			}
+	// Scan each file
+	Project project;
+	foreach (name ; files_to_scan) {
+		switch (extension(name)) {
+			case ".godot":
+				project = new Project(name);
+				break;
+			case ".tscn":
+				project._scenes[name] = new Scene(name);
+				break;
+			case ".gdns":
+				project._scripts[name] = new NativeScript(name);
+				break;
+			case ".gd":
+				project._gdscripts[name] = new GDScript(name);
+				break;
+			case ".gdnlib":
+				project._libraries[name] = new NativeLibrary(name);
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -90,92 +77,52 @@ unittest {
 	}
 
 	describe("godot_project_parse#SceneSignal",
-		it("Should parse scene with signal", delegate() {
+		it("Should parse basic project", delegate() {
 			string project_path = absolutePath(`test/project_signal/`);
+
+			// Make sure there is a project
 			auto project = parseProject(project_path ~ `project/project.godot`);
-			auto class_infos = getCodeClasses(project_path ~ `src/`);
-
 			project.shouldNotBeNull();
-			project._scenes.length.shouldEqual(1);
 
-			// Make sure the scene is valid
-			auto scene = project._scenes.values()[0];
-			scene._path.shouldEqual("Level/Level.tscn");
-			scene._error.shouldBeNull();
-			scene._resources.length.shouldEqual(1);
+			// Make sure there is a scene
+			project._scenes.keys.shouldEqual(["Level/Level.tscn"]);
+			auto scene = project._scenes["Level/Level.tscn"];
+			scene.shouldNotBeNull();
 
-			// Make sure the scene's script resource is valid
-			auto resource = scene._resources[0];
-			resource._type.shouldEqual("Script");
-			resource._path.shouldEqual("Level/Level.gdns");
-
-			// Make sure the scene's script is valid
-			auto script = project._scripts[resource._path];
-			script._error.shouldBeNull();
-			script._class_name.shouldEqual("level.Level");
+			// Make sure the scene has a signal
 			scene._connections.length.shouldEqual(1);
-
-			// Make sure scene's signal connection is valid
 			auto connection = scene._connections[0];
-			connection._signal.shouldEqual("pressed");
-			connection._from.shouldEqual("Button");
-			connection._to.shouldEqual(".");
-			connection._method.shouldEqual("on_button_pressed"); // FIXME: onButtonPressed
 			connection.isValid.shouldEqual(true);
 
-			// Make sure the D code is valid
-			class_infos.length.shouldEqual(1);
-			auto class_info = class_infos[0];
-			class_info._module.shouldEqual("level");
-			class_info.class_name.shouldEqual("Level");
-			class_info.base_class_name.shouldEqual("GodotScript");
-			"_ready".shouldBeIn(class_info.methods.map!(m => m.name).array);
-			"_process".shouldBeIn(class_info.methods.map!(m => m.name).array);
-			"onButtonPressed".shouldBeIn(class_info.methods.map!(m => m.name).array);
+			// Make sure the scene has a resource
+			scene._resources.map!(r => r._path).array.shouldEqual(["Level/Level.gdns"]);
+			auto resource = scene._resources[0];
+
+			// Make sure the scene has a script
+			project._scripts.keys.shouldEqual(["Level/Level.gdns"]);
+			auto script = project._scripts["Level/Level.gdns"];
+			scene._connections.length.shouldEqual(1);
+
+			// Make sure there is D code
+			auto class_infos = getCodeClasses(project_path ~ `src/`);
+			class_infos.map!(c => c.class_name).array.shouldEqual(["Level"]);
 		}),
-		it("Should fail to parse scene with missing signal method", delegate() {
-			string project_path = absolutePath(`test/project_signal_missing/`);
+		it("Should parse project with unreferenced files", delegate() {
+			string project_path = absolutePath(`test/project_unreferenced_files/`);
+
+			// Make sure there is a project
 			auto project = parseProject(project_path ~ `project/project.godot`);
-			auto class_infos = getCodeClasses(project_path ~ `src/`);
-
 			project.shouldNotBeNull();
-			project._scenes.length.shouldEqual(1);
 
-			// Made sure the scene is valid
-			auto scene = project._scenes.values[0];
-			scene._path.shouldEqual("Level/Level.tscn");
-			scene._error.shouldBeNull();
-			scene._resources.length.shouldEqual(1);
+			// Make sure all scenes, scripts, and libraries were found
+			project._scenes.keys.shouldEqual(["Player/Player.tscn", "Box2/Box2.tscn", "Level/Level.tscn"]);
+			project._gdscripts.keys.shouldEqual(["Box2/Box2.gd"]);
+			project._scripts.keys.shouldEqual(["Player/Player.gdns"]);
+			project._libraries.keys.shouldEqual(["libgame.gdnlib"]);
 
-			// Make sure the scene's script resource is valid
-			auto resource = scene._resources[0];
-			resource._type.shouldEqual("Script");
-			resource._path.shouldEqual("Level/Level.gdns");
-
-			// Make sure the scene's script is valid
-			auto script = project._scripts[resource._path];
-			script._error.shouldBeNull();
-			script._class_name.shouldEqual("level.Level");
-			scene._connections.length.shouldEqual(1);
-
-			// Make sure scene's signal connection is valid
-			auto connection = scene._connections[0];
-			connection._signal.shouldEqual("pressed");
-			connection._from.shouldEqual("Button");
-			connection._to.shouldEqual(".");
-			connection._method.shouldEqual("xxx"); // FIXME: onButtonPressed
-			connection.isValid.shouldEqual(true);
-
-			// Make sure the D code is valid
-			class_infos.length.shouldEqual(1);
-			auto class_info = class_infos[0];
-			class_info._module.shouldEqual("level");
-			class_info.class_name.shouldEqual("Level");
-			class_info.base_class_name.shouldEqual("GodotScript");
-			"_ready".shouldBeIn(class_info.methods.map!(m => m.name).array);
-			"_process".shouldBeIn(class_info.methods.map!(m => m.name).array);
-			"xxx".shouldNotBeIn(class_info.methods.map!(m => m.name).array);
-			"onButtonPressed".shouldNotBeIn(class_info.methods.map!(m => m.name).array);
+			// Make sure the D code was found
+			auto class_infos = getCodeClasses(project_path ~ `src/`);
+			class_infos.map!(c => c.class_name).array.shouldEqual(["Player"]);
 		})
 	);
 }

@@ -210,8 +210,7 @@ class MainSceneVerifyProjectVisitor : VerifyProjectVisitor {
 		if (project._main_scene_path == null) {
 			errors ~= `Project missing main scene`;
 		} else if (! exists(project_path ~ project._main_scene_path)) {
-			auto scene = project._scenes[project._main_scene_path];
-			errors ~= `Project main scene file not found: "%s"`.format(scene._path);
+			errors ~= `Project main scene file not found: "%s"`.format(project._main_scene_path);
 		}
 
 		return errors;
