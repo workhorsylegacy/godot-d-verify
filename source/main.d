@@ -9,6 +9,7 @@ int main(string[] args) {
 	import std.stdio : stdout, stderr;
 	import std.algorithm : canFind, endsWith;
 	import std.file : chdir;
+	import helpers : dirName, buildPath;
 	import godot_project_parse : parseProject;
 	import scan_d_code : getCodeClasses;
 	import godot_project_verify : verifyProject;
