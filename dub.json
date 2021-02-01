@@ -27,7 +27,7 @@
 			"targetName": "godot-d-verify-test",
 			"excludedSourceFiles": ["source/main.d"],
 			"dependencies": {
-				"bdd": { "path": "../BDD/" },
+				"bdd": "~>3.1.0",
 				"dxml": "~>0.4.3",
 				"libdparse": "~>0.17.0"
 			}

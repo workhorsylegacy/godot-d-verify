@@ -18,8 +18,10 @@ Project parseProject(string full_project_path) {
 	import std.algorithm : filter, map, canFind;
 	import std.string : chompPrefix, stripLeft;
 
-	// Get the directory path
 	string prev_dir = getcwd();
+	scope (exit) chdir(prev_dir);
+
+	// Get the directory path
 	string project_file = baseName(full_project_path);
 	string project_dir = dirName(full_project_path);
 	chdir(project_dir);
@@ -58,8 +60,6 @@ Project parseProject(string full_project_path) {
 				break;
 		}
 	}
-
-	chdir(prev_dir);
 
 	return project;
 }

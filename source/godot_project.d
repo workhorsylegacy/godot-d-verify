@@ -258,6 +258,9 @@ unittest {
 		before(delegate(){
 			reset_path("test/project_normal/project/");
 		}),
+		after(delegate(){
+			chdir(_root_path);
+		}),
 		it("Should parse project", delegate() {
 			auto project = new Project("project.godot");
 			project._path.shouldEqual("project.godot");
@@ -274,6 +277,9 @@ unittest {
 	describe("godot_project_parse#Scene",
 		before(delegate(){
 			reset_path("test/project_normal/project/");
+		}),
+		after(delegate(){
+			chdir(_root_path);
 		}),
 		it("Should parse scene with child scene", delegate() {
 			auto scene = new Scene("Level/Level.tscn");
@@ -316,6 +322,9 @@ unittest {
 		before(delegate(){
 			reset_path("test/project_normal/project/");
 		}),
+		after(delegate(){
+			chdir(_root_path);
+		}),
 		it("Should parse native script", delegate() {
 			auto script = new NativeScript("Player/Player.gdns");
 			script._path.shouldEqual("Player/Player.gdns");
@@ -340,6 +349,9 @@ unittest {
 	describe("godot_project_parse#NativeLibrary",
 		before(delegate(){
 			reset_path("test/project_normal/project/");
+		}),
+		after(delegate(){
+			chdir(_root_path);
 		}),
 		it("Should parse native library", delegate() {
 			auto library = new NativeLibrary("libgame.gdnlib");
