@@ -234,13 +234,12 @@ class NativeLibrary {
 
 unittest {
 	import BDD;
-	import std.file : chdir, getcwd;
+	import std.file : chdir;
 
 	string _root_path = null;
 
 	void reset_path(string project_path) {
-		import std.path : absolutePath;
-		import std.path : buildPath;
+		import helpers : getcwd, buildPath;
 
 		if (! _root_path) {
 			_root_path = getcwd();

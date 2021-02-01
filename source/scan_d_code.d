@@ -25,13 +25,13 @@ class KlassInfo {
 
 string getCodeAstXML(string full_file_name) {
 	import std.file : read, exists, remove;
-	import std.path : baseName;
 	import std.stdio : File;
 	import create_temp_file : createTempFile;
 	import dparse.lexer : LexerConfig, StringCache, getTokensForParser;
 	import dparse.parser : parseModule;
 	import dparse.rollback_allocator : RollbackAllocator;
 	import dparse.astprinter : XMLPrinter;
+	import helpers : baseName;
 
 	// Generate a temporary file that gets auto deleted
 	auto file_name = baseName(full_file_name);
@@ -62,10 +62,9 @@ string getCodeAstXML(string full_file_name) {
 }
 
 KlassInfo[] getCodeClasses(string path_to_src) {
-	import std.file : dirEntries, SpanMode;
-	import std.path : baseName;
 	import std.string : endsWith, split;
 	import std.algorithm : filter;
+	import helpers : baseName, dirEntries, SpanMode;
 	import read_xml : Node, readNodes, getNode, getNodes, getNodeText;
 
 	KlassInfo[] retval;

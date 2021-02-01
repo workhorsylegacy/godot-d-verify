@@ -12,11 +12,11 @@ import godot_project;
 
 
 Project parseProject(string full_project_path) {
-	import std.file : chdir, getcwd, dirEntries, SpanMode;
-	import std.path : extension, baseName, dirName;
+	import std.path : extension;
 	import std.array : replace, array;
 	import std.algorithm : filter, map, canFind;
 	import std.string : chompPrefix, stripLeft;
+	import helpers : getcwd, chdir, baseName, dirName, dirEntries, SpanMode;
 
 	string prev_dir = getcwd();
 	scope (exit) chdir(prev_dir);
@@ -68,13 +68,8 @@ unittest {
 	import BDD;
 	import std.algorithm : map;
 	import std.array : array;
+	import helpers : absolutePath;
 	import scan_d_code : getCodeClasses;
-
-	string absolutePath(string path) {
-		import std.path : absolutePath;
-		import std.array : replace;
-		return absolutePath(path).replace(`\`, `/`);
-	}
 
 	describe("godot_project_parse#SceneSignal",
 		it("Should parse basic project", delegate() {

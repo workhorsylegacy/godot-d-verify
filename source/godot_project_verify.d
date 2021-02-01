@@ -16,6 +16,7 @@ string[][string] verifyProject(string project_path, Project project, KlassInfo[]
 	import std.string : format;
 	import std.algorithm : filter;
 	import std.array : assocArray, byPair;
+	import helpers : sortBy;
 
 	string[][string] retval;
 
@@ -72,6 +73,7 @@ unittest {
 	import scan_d_code : getCodeClasses;
 
 	string[][string] setupTest(string project_path) {
+		import helpers : absolutePath;
 		project_path = absolutePath(project_path);
 		auto project = parseProject(project_path ~ `project/project.godot`);
 		auto class_infos = getCodeClasses(project_path ~ `src/`);
@@ -170,21 +172,6 @@ unittest {
 
 private:
 
-T[] sortBy(T, string field_name)(T[] things) {
-	import std.algorithm : sort;
-	import std.array : array;
-
-	alias sortFilter = (a, b) => mixin("a." ~ field_name ~ " < b." ~ field_name);
-
-	return things.sort!(sortFilter).array;
-}
-
-string absolutePath(string path) {
-	import std.path : absolutePath;
-	import std.array : replace;
-	return absolutePath(path).replace(`\`, `/`);
-}
-
 abstract class VerifyProjectVisitor {
 	string[] visit(string project_path, Project project, KlassInfo[] class_infos);
 }
@@ -221,6 +208,7 @@ class ResourceVerifySceneVisitor : VerifySceneVisitor {
 	override string[] visit(Scene scene, string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
 		import std.file : exists;
+		import helpers : sortBy;
 		string[] errors;
 
 		// Make sure the resource files exists
@@ -239,6 +227,7 @@ class SignalMethodInCodeVerifySceneVisitor : VerifySceneVisitor {
 		import std.string : format;
 		import std.algorithm : canFind;
 		import std.path : extension;
+		import helpers : sortBy;
 		string[] errors;
 
 		// Get the class name from .tscn -> .gdns -> class_name
@@ -325,6 +314,7 @@ class ClassNameVerifyScriptVisitor : VerifyScriptVisitor {
 class ScriptClassInCodeVerifyScriptVisitor : VerifyScriptVisitor {
 	override string[] visit(NativeScript script, string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
+		import helpers : sortBy;
 		string[] errors;
 
 		// Make sure the script class is in the D code
