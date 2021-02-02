@@ -23,7 +23,7 @@ class KlassInfo {
 	MethodInfo[] methods;
 
 	bool isValid() {
-		return class_name && base_class_name;
+		return class_name != null;
 	}
 }
 
@@ -92,7 +92,11 @@ KlassInfo[] getCodeClasses(string path_to_src) {
 			info.class_name = klass.getNode("classDeclaration/name/").getNodeText();
 
 			// Get base class name
-			info.base_class_name = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText();
+			if (auto text = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText()) {
+				info.base_class_name = text;
+			} else if (auto text = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/identifier/").getNodeText()) {
+				info.base_class_name = text;
+			}
 
 			// Get methods
 			foreach (Node method_node ; klass.getNodes("classDeclaration/structBody/declaration/functionDeclaration/")) {
