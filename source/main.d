@@ -8,6 +8,7 @@
 int main(string[] args) {
 	import std.stdio : stdout, stderr;
 	import std.file : chdir;
+	import std.file : exists;
 	import std.getopt : getopt, config, GetOptException;
 	import helpers : dirName, buildPath, toPosixPath;
 	import godot_project_parse : parseProject;
@@ -46,9 +47,18 @@ int main(string[] args) {
 		return 1;
 	}
 
-	// Cleanup the paths
+	// Check paths
 	project_path = toPosixPath(project_path);
+	if (! exists(project_path)) {
+		stderr.writefln(`Error: Godot project directory not found: %s`, project_path); stderr.flush();
+		return 1;
+	}
+
 	source_path = toPosixPath(source_path);
+	if (! exists(source_path)) {
+		stderr.writefln(`Error: D source code directory not found: %s`, source_path); stderr.flush();
+		return 1;
+	}
 
 	// Get the project info
 	stdout.writefln(`Verifying Godot D Project at "%s"`, project_path); stdout.flush();
