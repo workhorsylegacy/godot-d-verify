@@ -12,5 +12,5 @@ dub test --compiler=ldc2
 
 ```
 dub build --compiler=ldc2 --build=debug
-godot-d-verify.exe -f ../GameProject/
+godot-d-verify.exe --project game/project/ --source game/src/
 ```
