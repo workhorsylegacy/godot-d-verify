@@ -10,6 +10,10 @@ import std.stdio : stdout;
 class MethodInfo {
 	string name = null;
 	string[] attributes;
+
+	bool isValid() {
+		return name != null;
+	}
 }
 
 class KlassInfo {
@@ -82,25 +86,36 @@ KlassInfo[] getCodeClasses(string path_to_src) {
 		// Get all the classes and methods from the XML AST
 		Node root_node = readNodes(xml_ast);
 		foreach (Node klass ; root_node.getNodes("/module/declaration/classDeclaration/")) {
+			// Get module and class name
 			auto info = new KlassInfo();
 			info._module = file_name.split(".")[0];
 			info.class_name = klass.getNode("classDeclaration/name/").getNodeText();
+
+			// Get base class name
 			info.base_class_name = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText();
 
+			// Get methods
 			foreach (Node method_node ; klass.getNodes("classDeclaration/structBody/declaration/functionDeclaration/")) {
 				auto method = new MethodInfo();
 				method.name = method_node.getNode("functionDeclaration/name/").getNodeText();
 
 				// @Method void blah()
 				foreach (Node attribute ; method_node.parent_node.getNodes("declaration/attribute/atAttribute/identifier/")) {
-					method.attributes ~= attribute.getNodeText();
+					if (auto text = attribute.getNodeText()) {
+						method.attributes ~= text;
+					}
 				}
 
 				// @Method blah()
 				foreach (Node attribute ; method_node.parent_node.getNodes("declaration/functionDeclaration/storageClass/atAttribute/identifier/")) {
-					method.attributes ~= attribute.getNodeText();
+					if (auto text = attribute.getNodeText()) {
+						method.attributes ~= text;
+					}
 				}
-				info.methods ~= method;
+
+				if (method.isValid()) {
+					info.methods ~= method;
+				}
 			}
 
 			if (info.isValid()) {

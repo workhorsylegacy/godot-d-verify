@@ -69,9 +69,13 @@ Node getNode(Node node, string node_path_to_find, bool is_printing=false) {
 }
 
 string getNodeText(Node node) {
+	import dxml.dom : DOMEntity;
+
+	if (! node || node.entity==(DOMEntity!string).init || ! node.entity.children) return null;
+
 	foreach (child ; node.entity.children) {
 		return child.text;
 	}
 
-	return "";
+	return null;
 }
