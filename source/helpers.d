@@ -49,6 +49,16 @@ string dirName(string path) {
 	return dirName(path).replace(`\`, `/`);
 }
 
+string toPosixPath(string path) {
+	import std.array : replace;
+	import std.algorithm : endsWith;
+	path = path.replace(`\`, `/`);
+	if (! path.endsWith(`/`)) {
+		path ~= `/`;
+	}
+	return path;
+}
+
 T[] sortBy(T, string field_name)(T[] things) {
 	import std.algorithm : sort;
 	import std.array : array;
