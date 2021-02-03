@@ -76,6 +76,9 @@ int main(string[] args) {
 			stderr.writeln("    ", error);
 		}
 	}
+	if (project_errors.length > 0) {
+		return 1;
+	}
 
 	// Generate a list of classes that are GodotScript
 	if (generate_script_list) {
@@ -91,5 +94,5 @@ int main(string[] args) {
 		file.writefln("];\n");
 	}
 
-	return project_errors.length == 0 ? 0 : 1;
+	return 0;
 }
