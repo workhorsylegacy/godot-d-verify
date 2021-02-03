@@ -6,7 +6,7 @@
 
 
 int main(string[] args) {
-	import std.stdio : stdout, stderr;
+	import std.stdio : stdout, stderr, File;
 	import std.file : chdir;
 	import std.file : exists;
 	import std.getopt : getopt, config, GetOptException;
@@ -21,12 +21,14 @@ int main(string[] args) {
 	// Get the options
 	string project_path = null;
 	string source_path = null;
+	bool generate_script_list = false;
 	bool is_help = false;
 	string getopt_error = null;
 	try {
 		auto result = getopt(args,
 		config.required, "project", &project_path,
-		config.required, "source", &source_path);
+		config.required, "source", &source_path,
+		"generate_script_list", &generate_script_list);
 		is_help = result.helpWanted;
 	} catch (Exception err) {
 		getopt_error = err.msg;
@@ -37,9 +39,10 @@ int main(string[] args) {
 	if (is_help) {
 		stderr.writefln(
 		"Verify Godot D Project\n" ~
-		"--project    Directory containing Godot project. Required:\n" ~
-		"--source     Directory containing D source code. Required:\n" ~
-		"--help       This help information.\n"); stderr.flush();
+		"--project               Directory containing Godot project. Required:\n" ~
+		"--source                Directory containing D source code. Required:\n" ~
+		"--generate_script_list  Will generate a list of classes that are GodotScript. Optional:\n" ~
+		"--help                  This help information.\n"); stderr.flush();
 
 		if (getopt_error) {
 			stderr.writefln("Error: %s", getopt_error); stderr.flush();
@@ -72,6 +75,20 @@ int main(string[] args) {
 		foreach (error ; errors) {
 			stderr.writeln("    ", error);
 		}
+	}
+
+	// Generate a list of classes that are GodotScript
+	if (generate_script_list) {
+		string file_name = "generated_script_list.d";
+		stdout.writefln(`Generating "%s"`, source_path ~ file_name); stdout.flush();
+		File file = File(source_path ~ file_name, "w");
+		scope (exit) file.close();
+
+		file.writefln("\n\nenum string[string] script_list = [");
+		foreach (info ; class_infos) {
+			file.writefln(`	"%s" : "%s",`, info._module, info.class_name);
+		}
+		file.writefln("];\n");
 	}
 
 	return project_errors.length == 0 ? 0 : 1;
