@@ -92,8 +92,10 @@ KlassInfo[] getCodeClasses(string path_to_src) {
 			info.class_name = klass.getNode("classDeclaration/name/").getNodeText();
 
 			// Get base class name
+			// class Dog : GodotScript!Area
 			if (auto text = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText()) {
 				info.base_class_name = text;
+			// class Animal : GodotScript
 			} else if (auto text = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/identifier/").getNodeText()) {
 				info.base_class_name = text;
 			}

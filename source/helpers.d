@@ -5,6 +5,8 @@
 
 module helpers;
 
+import std.traits : isSomeString;
+
 public import std.file : SpanMode;
 public import std.file : DirIterator;
 
@@ -66,4 +68,31 @@ T[] sortBy(T, string field_name)(T[] things) {
 	alias sortFilter = (a, b) => mixin("a." ~ field_name ~ " < b." ~ field_name);
 
 	return things.sort!(sortFilter).array;
+}
+
+S before(S)(S value, S separator) if (isSomeString!S) {
+	import std.string : indexOf;
+	long i = indexOf(value, separator);
+
+	if (i == -1)
+		return value;
+
+	return value[0 .. i];
+}
+
+S after(S)(S value, S separator) if (isSomeString!S) {
+	import std.string : indexOf;
+	long i = indexOf(value, separator);
+
+	if (i == -1)
+		return "";
+
+	size_t start = i + separator.length;
+
+	return value[start .. $];
+}
+
+S between(S)(S value, S before, S after) if (isSomeString!S) {
+	import std.string : split;
+	return value.split(before)[1].split(after)[0];
 }

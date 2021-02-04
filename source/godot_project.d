@@ -7,8 +7,77 @@ module godot_project;
 
 
 import std.stdio : stdout;
+import helpers;
 
+class ResourceId {
+	int id;
 
+	this(int id) {
+		this.id = id;
+	}
+}
+
+class RefNode {
+	string _name = null;
+	string _type = null;
+	string _parent = null;
+	ResourceId _instance;
+
+	this(string line) {
+		import std.string : format, strip, split;
+		import std.conv : to;
+		import std.regex;
+		import std.algorithm : map;
+		import std.array : array;
+
+		// Make sure it is a node
+		if (! line.matchFirst(r"^\[node (\w|\W)*\]$")) {
+//			stdout.writefln("??????? NOT node, exiting. line: %s", line); stdout.flush();
+			return;
+		}
+
+//		stdout.writefln("??????? line: %s", line); stdout.flush();
+		foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
+//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
+			string[] pair = match.hit.split("=").map!(n => n.strip()).array();
+			switch (pair[0]) {
+				case "name": this._name = pair[1].strip(`"`); break;
+				case "type": this._type = pair[1].strip(`"`); break;
+				case "parent": this._parent = pair[1].strip(`"`); break;
+				default: break;
+			}
+		}
+
+//		stdout.writefln("!!!!!!!!!!!!! line: %s", line); stdout.flush();
+		foreach (match; line.matchAll(regex(`instance\s*=\s*ExtResource\(\s*\d+\s*\)`))) {
+//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
+			string[] pair = match.hit.split("=").map!(n => n.strip()).array();
+			int id = pair[1].between("ExtResource(", ")").strip.to!int;
+			this._instance = new ResourceId(id);
+		}
+	}
+
+	bool isValid() {
+		return (
+			_name &&
+			_type);
+	}
+}
+
+unittest {
+	import BDD;
+
+	describe("godot_project_parse#RefNode",
+		it("Should parse node", delegate() {
+			auto node = new RefNode(`[node name ="Level" type = "Spatial" parent="." instance= ExtResource( 27 )]`);
+			node._name.shouldEqual("Level");
+			node._type.shouldEqual("Spatial");
+			node._parent.shouldEqual(".");
+			node._instance.shouldNotBeNull();
+			node._instance.id.shouldEqual(27);
+		})
+	);
+}
 
 class RefConnection {
 	string _signal = null;
@@ -103,11 +172,12 @@ class Project {
 class Scene {
 	string _path = null;
 	string _error = null;
+	RefNode[] _nodes;
 	RefExtResource[] _resources;
 	RefConnection[] _connections;
 
 	this(string file_name) {
-		import std.string : format, splitLines, startsWith;
+		import std.string : format, split, splitLines, startsWith, strip;
 		import std.file : read, exists;
 
 		this._path = file_name;
@@ -128,6 +198,11 @@ class Scene {
 				auto con = new RefConnection(line);
 				if (con.isValid) {
 					this._connections ~= con;
+				}
+			} else if (line.startsWith("[node ")) {
+				auto node = new RefNode(line);
+				if (node.isValid) {
+					_nodes ~= node;
 				}
 			}
 		}
