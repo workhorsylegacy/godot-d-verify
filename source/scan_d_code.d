@@ -20,6 +20,7 @@ class KlassInfo {
 	string _module = null;
 	string class_name = null;
 	string base_class_name = null;
+	string base_class_template = null;
 	MethodInfo[] methods;
 
 	bool isValid() {
@@ -98,6 +99,12 @@ KlassInfo[] getCodeClasses(string path_to_src) {
 			// class Animal : GodotScript
 			} else if (auto text = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/identifier/").getNodeText()) {
 				info.base_class_name = text;
+			}
+
+			// Get base class template name
+			// class Dog : GodotScript!Spatial
+			if (auto text = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/templateArguments/templateSingleArgument/identifier/").getNodeText()) {
+				info.base_class_template = text;
 			}
 
 			// Get methods
