@@ -219,7 +219,7 @@ class VerifySceneVisitorResource : VerifySceneVisitor {
 		string[] errors;
 
 		// Make sure the resource files exists
-		foreach (resource ; scene._resources.sortBy!(RefExtResource, "_path")) {
+		foreach (resource ; scene._resources.sortBy!(HeadingExtResource, "_path")) {
 			if (! exists(project_path ~ resource._path)) {
 				errors ~= `Scene resource file not found: "%s"`.format(resource._path);
 			}
@@ -239,7 +239,7 @@ class VerifySceneVisitorSignalMethodInCode : VerifySceneVisitor {
 
 		// Get the class name from .tscn -> .gdns -> class_name
 		string class_name = null;
-		foreach (resource ; scene._resources.sortBy!(RefExtResource, "_path")) {
+		foreach (resource ; scene._resources.sortBy!(HeadingExtResource, "_path")) {
 			if (resource._type == "Script" && extension(resource._path) == ".gdns") {
 				NativeScript script = project._scripts[resource._path];
 				class_name = script._class_name;
@@ -251,7 +251,7 @@ class VerifySceneVisitorSignalMethodInCode : VerifySceneVisitor {
 
 		// Get the signal method names
 		string[] methods;
-		foreach (RefConnection connection ; scene._connections) {
+		foreach (HeadingConnection connection ; scene._connections) {
 			methods ~= connection._method;
 		}
 

@@ -9,7 +9,7 @@ module godot_project;
 import std.stdio : stdout;
 import helpers;
 
-class ResourceId {
+class EntryExtResource {
 	int id;
 
 	this(int id) {
@@ -17,12 +17,12 @@ class ResourceId {
 	}
 }
 
-class RefNode {
+class HeadingNode {
 	string _name = null;
 	string _type = null;
 	string _parent = null;
-	ResourceId _instance = null;
-	ResourceId _script = null;
+	EntryExtResource _instance = null;
+	EntryExtResource _script = null;
 
 	static bool isHeading(string line) {
 		import std.regex : matchFirst;
@@ -38,7 +38,7 @@ class RefNode {
 
 		foreach (line ; section.splitLines) {
 			// Make sure it is a node
-			if (RefNode.isHeading(line)) {
+			if (HeadingNode.isHeading(line)) {
 	//			stdout.writefln("??????? NOT node, exiting. line: %s", line); stdout.flush();
 		//		stdout.writefln("??????? line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
@@ -57,12 +57,12 @@ class RefNode {
 		//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
 					auto pair = match.hit.split("=").map!(n => n.strip());
 					int id = pair[1].between("ExtResource(", ")").strip.to!int;
-					this._instance = new ResourceId(id);
+					this._instance = new EntryExtResource(id);
 				}
 			} else if (line.matchFirst(`^script\s*=\s*ExtResource\(\s*\d+\s*\)$`)) {
 				auto pair = line.split("=").map!(n => n.strip());
 				int id = pair[1].between("ExtResource(", ")").strip.to!int;
-				this._script = new ResourceId(id);
+				this._script = new EntryExtResource(id);
 			}
 		}
 	}
@@ -77,9 +77,9 @@ class RefNode {
 unittest {
 	import BDD;
 
-	describe("godot_project#RefNode",
+	describe("godot_project#HeadingNode",
 		it("Should parse node", delegate() {
-			auto node = new RefNode(
+			auto node = new HeadingNode(
 `[node name ="Level" type = "Spatial" parent="." instance= ExtResource( 27 )]
 script = ExtResource( 2 )
 `);
@@ -94,7 +94,7 @@ script = ExtResource( 2 )
 	);
 }
 
-class RefConnection {
+class HeadingConnection {
 	string _signal = null;
 	string _from = null;
 	string _to = null;
@@ -113,7 +113,7 @@ class RefConnection {
 
 		foreach (line ; section.splitLines) {
 			// Make sure it is a node
-			if (RefConnection.isHeading(line)) {
+			if (HeadingConnection.isHeading(line)) {
 	//			stdout.writefln("??????? NOT node, exiting. line: %s", line); stdout.flush();
 		//		stdout.writefln("??????? line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
@@ -143,9 +143,9 @@ class RefConnection {
 unittest {
 	import BDD;
 
-	describe("godot_project#RefConnection",
+	describe("godot_project#HeadingConnection",
 		it("Should parse connection", delegate() {
-			auto conn = new RefConnection(
+			auto conn = new HeadingConnection(
 `[connection signal="pressed" from="Button" to="." method="on_button_pressed"]
 `);
 			conn._signal.shouldEqual("pressed");
@@ -156,7 +156,7 @@ unittest {
 	);
 }
 
-class RefExtResource {
+class HeadingExtResource {
 	string _path = null;
 	string _type = null;
 	int _id = -1;
@@ -166,12 +166,12 @@ class RefExtResource {
 		return ! line.matchFirst(r"^\[ext_resource (\w|\W)*\]").empty;
 	}
 
-	this(string segment) {
+	this(string section) {
 		import std.conv : to;
 		import std.string : format, strip, split, splitLines;
 		import std.algorithm : map;
 
-		foreach (line ;  segment.splitLines) {
+		foreach (line ;  section.splitLines) {
 			foreach (chunk ; line.before(`]`).split(" ")) {
 				auto pair = chunk.split("=").map!(n => n.strip().strip(`"`));
 				switch (pair[0]) {
@@ -194,9 +194,9 @@ class RefExtResource {
 unittest {
 	import BDD;
 
-	describe("godot_project#RefExtResource",
+	describe("godot_project#HeadingExtResource",
 		it("Should parse ext resource", delegate() {
-			auto resource = new RefExtResource(`[ext_resource path="res://src/ClothHolder/ClothHolder.tscn" type="PackedScene" id=21]`);
+			auto resource = new HeadingExtResource(`[ext_resource path="res://src/ClothHolder/ClothHolder.tscn" type="PackedScene" id=21]`);
 			resource._path.shouldEqual("src/ClothHolder/ClothHolder.tscn");
 			resource._type.shouldEqual("PackedScene");
 			resource._id.shouldEqual(21);
@@ -268,9 +268,9 @@ unittest {
 class Scene {
 	string _path = null;
 	string _error = null;
-	RefNode[] _nodes;
-	RefExtResource[] _resources;
-	RefConnection[] _connections;
+	HeadingNode[] _nodes;
+	HeadingExtResource[] _resources;
+	HeadingConnection[] _connections;
 
 	this(string file_name) {
 		import std.string : format, split, splitLines, startsWith, strip, replace;
@@ -286,11 +286,11 @@ class Scene {
 		auto data = (cast(string)read(file_name)).replace("\r\n", "\n");
 		foreach (section ; data.split("[")) {
 			section = ("[" ~ section).strip;
-			if (auto node = tryParseHeading!RefNode(section)) {
+			if (auto node = tryParseHeading!HeadingNode(section)) {
 				_nodes ~= node;
-			} else if (auto con = tryParseHeading!RefConnection(section)) {
+			} else if (auto con = tryParseHeading!HeadingConnection(section)) {
 				this._connections ~= con;
-			} else if (auto res = tryParseHeading!RefExtResource(section)) {
+			} else if (auto res = tryParseHeading!HeadingExtResource(section)) {
 				this._resources ~= res;
 			}
 		}
@@ -367,7 +367,7 @@ class NativeScript {
 	string _path = null;
 	string _error = null;
 	string _class_name = null;
-	RefExtResource _native_library = null;
+	HeadingExtResource _native_library = null;
 
 	this(string file_name) {
 		import std.string : format, strip, split, splitLines, startsWith, replace;
@@ -384,7 +384,7 @@ class NativeScript {
 		auto data = (cast(string)read(this._path)).replace("\r\n", "\n");
 		string section = null;
 		foreach (line ; data.splitLines) {
-			if (auto res = tryParseHeading!RefExtResource(line)) {
+			if (auto res = tryParseHeading!HeadingExtResource(line)) {
 				switch (res._type) {
 					case "GDNativeLibrary": this._native_library = res; break;
 					default: break;
