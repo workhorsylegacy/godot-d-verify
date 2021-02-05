@@ -21,39 +21,45 @@ class RefNode {
 	string _name = null;
 	string _type = null;
 	string _parent = null;
-	ResourceId _instance;
+	ResourceId _instance = null;
+	ResourceId _script = null;
 
-	this(string line) {
-		import std.string : format, strip, split;
+	this(string section) {
+		import std.string : format, strip, split, splitLines;
 		import std.conv : to;
 		import std.regex;
 		import std.algorithm : map;
 		import std.array : array;
 
-		// Make sure it is a node
-		if (! line.matchFirst(r"^\[node (\w|\W)*\]$")) {
-//			stdout.writefln("??????? NOT node, exiting. line: %s", line); stdout.flush();
-			return;
-		}
 
-//		stdout.writefln("??????? line: %s", line); stdout.flush();
-		foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
-//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
-			string[] pair = match.hit.split("=").map!(n => n.strip()).array();
-			switch (pair[0]) {
-				case "name": this._name = pair[1].strip(`"`); break;
-				case "type": this._type = pair[1].strip(`"`); break;
-				case "parent": this._parent = pair[1].strip(`"`); break;
-				default: break;
+		foreach (line ; section.splitLines) {
+			// Make sure it is a node
+			if (line.matchFirst(r"^\[node (\w|\W)*\]$")) {
+	//			stdout.writefln("??????? NOT node, exiting. line: %s", line); stdout.flush();
+		//		stdout.writefln("??????? line: %s", line); stdout.flush();
+				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
+		//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
+					string[] pair = match.hit.split("=").map!(n => n.strip()).array();
+					switch (pair[0]) {
+						case "name": this._name = pair[1].strip(`"`); break;
+						case "type": this._type = pair[1].strip(`"`); break;
+						case "parent": this._parent = pair[1].strip(`"`); break;
+						default: break;
+					}
+				}
+
+		//		stdout.writefln("!!!!!!!!!!!!! line: %s", line); stdout.flush();
+				foreach (match; line.matchAll(regex(`instance\s*=\s*ExtResource\(\s*\d+\s*\)`))) {
+		//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
+					string[] pair = match.hit.split("=").map!(n => n.strip()).array();
+					int id = pair[1].between("ExtResource(", ")").strip.to!int;
+					this._instance = new ResourceId(id);
+				}
+			} else if (line.matchFirst(`^script\s*=\s*ExtResource\(\s*\d+\s*\)$`)) {
+				string[] pair = line.split("=").map!(n => n.strip()).array();
+				int id = pair[1].between("ExtResource(", ")").strip.to!int;
+				this._script = new ResourceId(id);
 			}
-		}
-
-//		stdout.writefln("!!!!!!!!!!!!! line: %s", line); stdout.flush();
-		foreach (match; line.matchAll(regex(`instance\s*=\s*ExtResource\(\s*\d+\s*\)`))) {
-//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
-			string[] pair = match.hit.split("=").map!(n => n.strip()).array();
-			int id = pair[1].between("ExtResource(", ")").strip.to!int;
-			this._instance = new ResourceId(id);
 		}
 	}
 
@@ -69,12 +75,17 @@ unittest {
 
 	describe("godot_project_parse#RefNode",
 		it("Should parse node", delegate() {
-			auto node = new RefNode(`[node name ="Level" type = "Spatial" parent="." instance= ExtResource( 27 )]`);
+			auto node = new RefNode(
+`[node name ="Level" type = "Spatial" parent="." instance= ExtResource( 27 )]
+script = ExtResource( 2 )
+`);
 			node._name.shouldEqual("Level");
 			node._type.shouldEqual("Spatial");
 			node._parent.shouldEqual(".");
 			node._instance.shouldNotBeNull();
 			node._instance.id.shouldEqual(27);
+			node._script.shouldNotBeNull();
+			node._script.id.shouldEqual(2);
 		})
 	);
 }
@@ -112,8 +123,10 @@ class RefConnection {
 class RefExtResource {
 	string _path = null;
 	string _type = null;
+	int _id = -1;
 
 	this(string line) {
+		import std.conv : to;
 		import std.string : format, strip, split;
 
 		foreach (chunk ; line.split(`]`)[0].split(" ")) {
@@ -121,6 +134,7 @@ class RefExtResource {
 			switch (pair[0]) {
 				case "path": this._path = pair[1].strip(`"`).split(`res://`)[1]; break;
 				case "type": this._type = pair[1].strip(`"`); break;
+				case "id": this._id = pair[1].strip(`"`).to!int; break;
 				default: break;
 			}
 		}
@@ -131,6 +145,19 @@ class RefExtResource {
 			_path &&
 			_type);
 	}
+}
+
+unittest {
+	import BDD;
+
+	describe("godot_project_parse#RefExtResource",
+		it("Should parse ext resource", delegate() {
+			auto resource = new RefExtResource(`[ext_resource path="res://src/ClothHolder/ClothHolder.tscn" type="PackedScene" id=21]`);
+			resource._path.shouldEqual("src/ClothHolder/ClothHolder.tscn");
+			resource._type.shouldEqual("PackedScene");
+			resource._id.shouldEqual(21);
+		})
+	);
 }
 
 class Project {
@@ -187,6 +214,7 @@ class Scene {
 			return;
 		}
 
+		// FIXME Update RefExtResource and RefConnection to use section instead of line
 		auto data = cast(string)read(file_name);
 		foreach (line ; data.splitLines) {
 			if (line.startsWith("[ext_resource ")) {
@@ -199,8 +227,12 @@ class Scene {
 				if (con.isValid) {
 					this._connections ~= con;
 				}
-			} else if (line.startsWith("[node ")) {
-				auto node = new RefNode(line);
+			}
+		}
+
+		foreach (section ; data.split(`\n\n`)) {
+			if (section.startsWith("[node ")) {
+				auto node = new RefNode(section);
 				if (node.isValid) {
 					_nodes ~= node;
 				}
