@@ -206,7 +206,7 @@ class Project {
 
 	this(string file_name) {
 		import std.string : format, strip, split, splitLines, startsWith, replace;
-		import std.file : read, exists;
+		import std.file : exists;
 		import std.regex : matchFirst;
 
 		this._path = file_name;
@@ -217,15 +217,16 @@ class Project {
 			return;
 		}
 
-		auto data = (cast(string)read(file_name)).replace("\r\n", "\n");
-		string section = null;
-		foreach (line ; data.splitLines) {
-			if (matchFirst(line, r"^\[\w+\]$")) {
-				section = line;
-			}
+		string heading = null;
+		foreach (section ; readFileSections(file_name)) {
+			foreach (line ; section.splitLines) {
+				if (matchFirst(line, r"^\[\w+\]$")) {
+					heading = line;
+				}
 
-			if (section == "[application]" && line.startsWith("run/main_scene=")) {
-				this._main_scene_path = line.after("run/main_scene=").strip(`"`).after(`res://`);
+				if (heading == "[application]" && line.startsWith("run/main_scene=")) {
+					this._main_scene_path = line.after("run/main_scene=").strip(`"`).after(`res://`);
+				}
 			}
 		}
 	}
@@ -265,7 +266,7 @@ class Scene {
 
 	this(string file_name) {
 		import std.string : format, split, splitLines, startsWith, strip, replace;
-		import std.file : read, exists;
+		import std.file : exists;
 
 		this._path = file_name;
 
@@ -274,9 +275,7 @@ class Scene {
 			return;
 		}
 
-		auto data = (cast(string)read(file_name)).replace("\r\n", "\n");
-		foreach (section ; data.split("[")) {
-			section = ("[" ~ section).strip;
+		foreach (section ; readFileSections(file_name)) {
 			if (auto node = tryParseHeading!HeadingNode(section)) {
 				_nodes ~= node;
 			} else if (auto con = tryParseHeading!HeadingConnection(section)) {
@@ -362,7 +361,7 @@ class NativeScript {
 
 	this(string file_name) {
 		import std.string : format, strip, split, splitLines, startsWith, replace;
-		import std.file : read, exists;
+		import std.file : exists;
 		import std.regex : matchFirst;
 
 		this._path = file_name;
@@ -372,22 +371,23 @@ class NativeScript {
 			return;
 		}
 
-		auto data = (cast(string)read(this._path)).replace("\r\n", "\n");
-		string section = null;
-		foreach (line ; data.splitLines) {
-			if (auto res = tryParseHeading!HeadingExtResource(line)) {
-				switch (res._type) {
-					case "GDNativeLibrary": this._native_library = res; break;
-					default: break;
+		string heading = null;
+		foreach (section ; readFileSections(this._path)) {
+			foreach (line ; section.splitLines) {
+				if (auto res = tryParseHeading!HeadingExtResource(line)) {
+					switch (res._type) {
+						case "GDNativeLibrary": this._native_library = res; break;
+						default: break;
+					}
 				}
-			}
 
-			if (matchFirst(line, r"^\[\w+\]$")) {
-				section = line;
-			}
+				if (matchFirst(line, r"^\[\w+\]$")) {
+					heading = line;
+				}
 
-			if (section == "[resource]" && line.startsWith("class_name = ")) {
-				this._class_name = line.after("class_name = ").strip(`"`);
+				if (heading == "[resource]" && line.startsWith("class_name = ")) {
+					this._class_name = line.after("class_name = ").strip(`"`);
+				}
 			}
 		}
 	}
@@ -435,7 +435,7 @@ class NativeLibrary {
 
 	this(string file_name) {
 		import std.string : format, strip, split, splitLines, startsWith, replace;
-		import std.file : read, exists;
+		import std.file : exists;
 		import std.regex : matchFirst;
 
 		this._path = file_name;
@@ -446,19 +446,20 @@ class NativeLibrary {
 			return;
 		}
 
-		auto data = (cast(string)read(this._path)).replace("\r\n", "\n");
-		string section = null;
-		foreach (line ; data.splitLines) {
-			if (matchFirst(line, r"^\[\w+\]$")) {
-				section = line;
-			}
+		foreach (section ; readFileSections(this._path)) {
+			string heading = null;
+			foreach (line ; section.splitLines) {
+				if (matchFirst(line, r"^\[\w+\]$")) {
+					heading = line;
+				}
 
-			if (section == "[general]" && line.startsWith("symbol_prefix=")) {
-				this._symbol_prefix = line.after("symbol_prefix=").strip(`"`);
-			} else if (section == "[entry]" && line.startsWith("Windows.64=")) {
-				this._dll_windows_path = line.after("Windows.64=").strip(`"`).after(`res://`);
-			} else if (section == "[entry]" && line.startsWith("X11.64=")) {
-				this._dll_linux_path = line.after("X11.64=").strip(`"`).after(`res://`);
+				if (heading == "[general]" && line.startsWith("symbol_prefix=")) {
+					this._symbol_prefix = line.after("symbol_prefix=").strip(`"`);
+				} else if (heading == "[entry]" && line.startsWith("Windows.64=")) {
+					this._dll_windows_path = line.after("Windows.64=").strip(`"`).after(`res://`);
+				} else if (heading == "[entry]" && line.startsWith("X11.64=")) {
+					this._dll_linux_path = line.after("X11.64=").strip(`"`).after(`res://`);
+				}
 			}
 		}
 	}
@@ -505,4 +506,19 @@ T tryParseHeading(T)(string section) {
 		}
 	}
 	return null;
+}
+
+string[] readFileSections(string file_name) {
+	import std.string : format, split, splitLines, startsWith, strip, replace;
+	import std.file : read;
+	import std.array : array;
+	import std.algorithm : map;
+
+	string[] sections =
+		(cast(string)read(file_name))
+		.replace("\r\n", "\n")
+		.split("[")
+		.map!(sec => ("[" ~ sec).strip)
+		.array;
+	return sections;
 }
