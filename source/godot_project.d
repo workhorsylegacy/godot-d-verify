@@ -218,26 +218,11 @@ class Project {
 			return;
 		}
 
-		string heading = null;
 		foreach (section ; readFileSections(file_name)) {
-			foreach (line ; section.splitLines) {
-				if (matchFirst(line, r"^\[\w+\]$")) {
-					heading = line;
-					continue;
-				} else if (! line.canFind("=")) {
-					continue;
-				}
-
-				switch (heading) {
-					case "[application]":
-						auto pair = line.split("=").map!(n => n.strip.strip(`"`));
-						switch (pair[0]) {
-							case "run/main_scene": this._main_scene_path = pair[1].after(`res://`); break;
-							default: break;
-						}
-						break;
-					default:
-						break;
+			auto data = parseSectionKeyValuePiars(section);
+			if (auto heading = data.get("[application]", null)) {
+				if (auto entry = heading.get("run/main_scene", null)) {
+					this._main_scene_path = entry.after(`res://`);
 				}
 			}
 		}
@@ -384,7 +369,6 @@ class NativeScript {
 			return;
 		}
 
-		string heading = null;
 		foreach (section ; readFileSections(this._path)) {
 			foreach (line ; section.splitLines) {
 				if (auto res = tryParseHeading!HeadingExtResource(line)) {
@@ -393,23 +377,12 @@ class NativeScript {
 						default: break;
 					}
 				}
-				if (matchFirst(line, r"^\[\w+\]$")) {
-					heading = line;
-					continue;
-				} else if (! line.canFind("=")) {
-					continue;
-				}
+			}
 
-				switch (heading) {
-					case "[resource]":
-						auto pair = line.split("=").map!(n => n.strip.strip(`"`));
-						switch (pair[0]) {
-							case "class_name": this._class_name = pair[1]; break;
-							default: break;
-						}
-						break;
-					default:
-						break;
+			auto data = parseSectionKeyValuePiars(section);
+			if (auto heading = data.get("[resource]", null)) {
+				if (auto entry = heading.get("class_name", null)) {
+					this._class_name = entry;
 				}
 			}
 		}
@@ -471,33 +444,17 @@ class NativeLibrary {
 		}
 
 		foreach (section ; readFileSections(this._path)) {
-			string heading = null;
-			foreach (line ; section.splitLines) {
-				if (matchFirst(line, r"^\[\w+\]$")) {
-					heading = line;
-					continue;
-				} else if (! line.canFind("=")) {
-					continue;
+			auto data = parseSectionKeyValuePiars(section);
+			if (auto heading = data.get("[general]", null)) {
+				if (auto entry = heading.get("symbol_prefix", null)) {
+					this._symbol_prefix = entry;
 				}
-
-				switch (heading) {
-					case "[general]":
-						auto pair = line.split("=").map!(n => n.strip.strip(`"`));
-						switch (pair[0]) {
-							case "symbol_prefix": this._symbol_prefix = pair[1]; break;
-							default: break;
-						}
-						break;
-					case "[entry]":
-						auto pair = line.split("=").map!(n => n.strip.strip(`"`));
-						switch (pair[0]) {
-							case "Windows.64": this._dll_windows_path = pair[1].after(`res://`); break;
-							case "X11.64": this._dll_linux_path = pair[1].after(`res://`); break;
-							default: break;
-						}
-						break;
-					default:
-						break;
+			} else if (auto heading = data.get("[entry]", null)) {
+				if (auto entry = heading.get("Windows.64", null)) {
+					this._dll_windows_path = entry.after(`res://`);
+				}
+				if (auto entry = heading.get("X11.64", null)) {
+					this._dll_linux_path = entry.after(`res://`);
 				}
 			}
 		}
@@ -566,4 +523,30 @@ string[] readFileSections(string file_name) {
 	}
 
 	return sections;
+}
+
+string[string][string] parseSectionKeyValuePiars(string section) {
+	import std.string : strip, split, splitLines;
+	import std.regex : matchFirst;
+	import std.algorithm : map, canFind;
+
+	string[string][string] retval;
+	string heading = null;
+	foreach (line ; section.splitLines) {
+		if (matchFirst(line, r"^\[\w+\]$")) {
+			heading = line;
+			//retval[heading] = (string[string]).init;
+			continue;
+		} else if (! line.canFind("=")) {
+			continue;
+		}
+
+		auto pair = line.split("=").map!(n => n.strip.strip(`"`));
+		if (pair.length >= 2) {
+			string key = pair[0];
+			string value = pair[1];
+			retval[heading][key] = value;
+		}
+	}
+	return retval;
 }
