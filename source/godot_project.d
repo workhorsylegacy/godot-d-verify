@@ -24,6 +24,11 @@ class RefNode {
 	ResourceId _instance = null;
 	ResourceId _script = null;
 
+	static bool isHeading(string line) {
+		import std.regex : matchFirst;
+		return ! line.matchFirst(r"^\[node (\w|\W)*\]").empty;
+	}
+
 	this(string section) {
 		import std.string : format, strip, split, splitLines;
 		import std.conv : to;
@@ -33,7 +38,7 @@ class RefNode {
 
 		foreach (line ; section.splitLines) {
 			// Make sure it is a node
-			if (line.matchFirst(r"^\[node (\w|\W)*\]$")) {
+			if (RefNode.isHeading(line)) {
 	//			stdout.writefln("??????? NOT node, exiting. line: %s", line); stdout.flush();
 		//		stdout.writefln("??????? line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
@@ -95,6 +100,11 @@ class RefConnection {
 	string _to = null;
 	string _method = null;
 
+	static bool isHeading(string line) {
+		import std.regex : matchFirst;
+		return ! line.matchFirst(r"^\[connection (\w|\W)*\]$").empty;
+	}
+
 	this(string section) {
 		import std.string : format, strip, split, splitLines;
 		import std.conv : to;
@@ -103,7 +113,7 @@ class RefConnection {
 
 		foreach (line ; section.splitLines) {
 			// Make sure it is a node
-			if (line.matchFirst(r"^\[connection (\w|\W)*\]$")) {
+			if (RefConnection.isHeading(line)) {
 	//			stdout.writefln("??????? NOT node, exiting. line: %s", line); stdout.flush();
 		//		stdout.writefln("??????? line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
@@ -150,6 +160,11 @@ class RefExtResource {
 	string _path = null;
 	string _type = null;
 	int _id = -1;
+
+	static bool isHeading(string line) {
+		import std.regex : matchFirst;
+		return ! line.matchFirst(r"^\[ext_resource (\w|\W)*\]").empty;
+	}
 
 	this(string segment) {
 		import std.conv : to;
@@ -271,21 +286,12 @@ class Scene {
 		auto data = (cast(string)read(file_name)).replace("\r\n", "\n");
 		foreach (section ; data.split("[")) {
 			section = ("[" ~ section).strip;
-			if (section.startsWith("[node ")) {
-				auto node = new RefNode(section);
-				if (node.isValid) {
-					_nodes ~= node;
-				}
-			} else if (section.startsWith("[connection ")) {
-				auto con = new RefConnection(section);
-				if (con.isValid) {
-					this._connections ~= con;
-				}
-			} else if (section.startsWith("[ext_resource ")) {
-				auto res = new RefExtResource(section);
-				if (res.isValid) {
-					this._resources ~= res;
-				}
+			if (auto node = tryParseHeading!RefNode(section)) {
+				_nodes ~= node;
+			} else if (auto con = tryParseHeading!RefConnection(section)) {
+				this._connections ~= con;
+			} else if (auto res = tryParseHeading!RefExtResource(section)) {
+				this._resources ~= res;
 			}
 		}
 	}
@@ -378,13 +384,10 @@ class NativeScript {
 		auto data = (cast(string)read(this._path)).replace("\r\n", "\n");
 		string section = null;
 		foreach (line ; data.splitLines) {
-			if (line.startsWith("[ext_resource ")) {
-				auto res = new RefExtResource(line);
-				if (res.isValid) {
-					switch (res._type) {
-						case "GDNativeLibrary": this._native_library = res; break;
-						default: break;
-					}
+			if (auto res = tryParseHeading!RefExtResource(line)) {
+				switch (res._type) {
+					case "GDNativeLibrary": this._native_library = res; break;
+					default: break;
 				}
 			}
 
@@ -499,4 +502,16 @@ unittest {
 			library._symbol_prefix.shouldBeNull();
 		})
 	);
+}
+
+private
+
+T tryParseHeading(T)(string section) {
+	if (T.isHeading(section)) {
+		auto node = new T(section);
+		if (node.isValid) {
+			return node;
+		}
+	}
+	return null;
 }
