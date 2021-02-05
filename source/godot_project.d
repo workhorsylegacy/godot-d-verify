@@ -39,11 +39,11 @@ class RefNode {
 		//		stdout.writefln("??????? line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
 		//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
-					string[] pair = match.hit.split("=").map!(n => n.strip()).array();
+					string[] pair = match.hit.split("=").map!(n => n.strip().strip(`"`)).array();
 					switch (pair[0]) {
-						case "name": this._name = pair[1].strip(`"`); break;
-						case "type": this._type = pair[1].strip(`"`); break;
-						case "parent": this._parent = pair[1].strip(`"`); break;
+						case "name": this._name = pair[1]; break;
+						case "type": this._type = pair[1]; break;
+						case "parent": this._parent = pair[1]; break;
 						default: break;
 					}
 				}
@@ -110,12 +110,12 @@ class RefConnection {
 		//		stdout.writefln("??????? line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
 		//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
-					string[] pair = match.hit.split("=").map!(n => n.strip()).array();
+					string[] pair = match.hit.split("=").map!(n => n.strip().strip(`"`)).array();
 					switch (pair[0]) {
-						case "signal": this._signal = pair[1].strip(`"`); break;
-						case "from": this._from = pair[1].strip(`"`); break;
-						case "to": this._to = pair[1].strip(`"`); break;
-						case "method": this._method = pair[1].strip(`"`); break;
+						case "signal": this._signal = pair[1]; break;
+						case "from": this._from = pair[1]; break;
+						case "to": this._to = pair[1]; break;
+						case "method": this._method = pair[1]; break;
 						default: break;
 					}
 				}
@@ -156,14 +156,16 @@ class RefExtResource {
 	this(string segment) {
 		import std.conv : to;
 		import std.string : format, strip, split, splitLines;
+		import std.algorithm : map;
+		import std.array : array;
 
 		foreach (line ;  segment.splitLines) {
 			foreach (chunk ; line.split(`]`)[0].split(" ")) {
-				string[] pair = chunk.split("=");
+				string[] pair = chunk.split("=").map!(n => n.strip().strip(`"`)).array();
 				switch (pair[0]) {
-					case "path": this._path = pair[1].strip(`"`).split(`res://`)[1]; break;
-					case "type": this._type = pair[1].strip(`"`); break;
-					case "id": this._id = pair[1].strip(`"`).to!int; break;
+					case "path": this._path = pair[1].split(`res://`)[1]; break;
+					case "type": this._type = pair[1]; break;
+					case "id": this._id = pair[1].to!int; break;
 					default: break;
 				}
 			}
