@@ -24,7 +24,7 @@ string[][string] verifyProject(string project_path, Project project, KlassInfo[]
 	foreach (Project proj ; [project]) {
 		if (proj._error) continue;
 		string[] errors;
-		errors ~= new MainSceneVerifyProjectVisitor().visit(project_path, proj, class_infos);
+		errors ~= new VerifyProjectVisitorMainScene().visit(project_path, proj, class_infos);
 		if (errors.length) retval[proj._path] = errors;
 	}
 
@@ -32,9 +32,9 @@ string[][string] verifyProject(string project_path, Project project, KlassInfo[]
 	foreach (scene ; project._scenes.values.sortBy!(Scene, "_path")) {
 		if (scene._error) continue;
 		string[] errors;
-		errors ~= new ResourceVerifySceneVisitor().visit(scene, project_path, project, class_infos);
-		errors ~= new SignalMethodInCodeVerifySceneVisitor().visit(scene, project_path, project, class_infos);
-		errors ~= new SceneTypeClassTypeMismatchVerifySceneVisitor().visit(scene, project_path, project, class_infos);
+		errors ~= new VerifySceneVisitorResource().visit(scene, project_path, project, class_infos);
+		errors ~= new VerifySceneVisitorSignalMethodInCode().visit(scene, project_path, project, class_infos);
+		errors ~= new VerifySceneVisitorSceneTypeClassTypeMismatch().visit(scene, project_path, project, class_infos);
 		if (errors.length) retval["tscn: %s".format(scene._path)] = errors;
 	}
 
@@ -42,9 +42,9 @@ string[][string] verifyProject(string project_path, Project project, KlassInfo[]
 	foreach (script ; project._scripts.values.sortBy!(NativeScript, "_path")) {
 		if (script._error) continue;
 		string[] errors;
-		errors ~= new NativeLibraryVerifyScriptVisitor().visit(script, project_path, project, class_infos);
-		errors ~= new ClassNameVerifyScriptVisitor().visit(script, project_path, project, class_infos);
-		errors ~= new ScriptClassInCodeVerifyScriptVisitor().visit(script, project_path, project, class_infos);
+		errors ~= new VerifyScriptVisitorNativeLibrary().visit(script, project_path, project, class_infos);
+		errors ~= new VerifyScriptVisitorClassName().visit(script, project_path, project, class_infos);
+		errors ~= new VerifyScriptVisitorScriptClassInCode().visit(script, project_path, project, class_infos);
 		if (errors.length) retval["gdns: %s".format(script._path)] = errors;
 	}
 
@@ -52,8 +52,8 @@ string[][string] verifyProject(string project_path, Project project, KlassInfo[]
 	foreach (library ; project._libraries.values.sortBy!(NativeLibrary, "_path")) {
 		if (library._error) continue;
 		string[] errors;
-		errors ~= new SymbolPrefixVerifyLibraryVisitor().visit(library, project_path, project, class_infos);
-		errors ~= new DllPathVerifyLibraryVisitor().visit(library, project_path, project, class_infos);
+		errors ~= new VerifyLibraryVisitorSymbolPrefix().visit(library, project_path, project, class_infos);
+		errors ~= new VerifyLibraryVisitorDllPath().visit(library, project_path, project, class_infos);
 		if (errors.length) retval["gdnlib: %s".format(library._path)] = errors;
 	}
 
@@ -195,7 +195,7 @@ abstract class VerifyLibraryVisitor {
 	string[] visit(NativeLibrary library, string project_path, Project project, KlassInfo[] class_infos);
 }
 
-class MainSceneVerifyProjectVisitor : VerifyProjectVisitor {
+class VerifyProjectVisitorMainScene : VerifyProjectVisitor {
 	override string[] visit(string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
 		import std.file : exists;
@@ -211,7 +211,7 @@ class MainSceneVerifyProjectVisitor : VerifyProjectVisitor {
 	}
 }
 
-class ResourceVerifySceneVisitor : VerifySceneVisitor {
+class VerifySceneVisitorResource : VerifySceneVisitor {
 	override string[] visit(Scene scene, string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
 		import std.file : exists;
@@ -229,7 +229,7 @@ class ResourceVerifySceneVisitor : VerifySceneVisitor {
 	}
 }
 
-class SignalMethodInCodeVerifySceneVisitor : VerifySceneVisitor {
+class VerifySceneVisitorSignalMethodInCode : VerifySceneVisitor {
 	override string[] visit(Scene scene, string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
 		import std.algorithm : canFind;
@@ -286,7 +286,7 @@ class SignalMethodInCodeVerifySceneVisitor : VerifySceneVisitor {
 	}
 }
 
-class SceneTypeClassTypeMismatchVerifySceneVisitor : VerifySceneVisitor {
+class VerifySceneVisitorSceneTypeClassTypeMismatch : VerifySceneVisitor {
 	override string[] visit(Scene scene, string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
 		import std.file : exists;
@@ -334,7 +334,7 @@ class SceneTypeClassTypeMismatchVerifySceneVisitor : VerifySceneVisitor {
 	}
 }
 
-class NativeLibraryVerifyScriptVisitor : VerifyScriptVisitor {
+class VerifyScriptVisitorNativeLibrary : VerifyScriptVisitor {
 	override string[] visit(NativeScript script, string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
 		import std.file : exists;
@@ -353,7 +353,7 @@ class NativeLibraryVerifyScriptVisitor : VerifyScriptVisitor {
 	}
 }
 
-class ClassNameVerifyScriptVisitor : VerifyScriptVisitor {
+class VerifyScriptVisitorClassName : VerifyScriptVisitor {
 	override string[] visit(NativeScript script, string project_path, Project project, KlassInfo[] class_infos) {
 		string[] errors;
 
@@ -366,7 +366,7 @@ class ClassNameVerifyScriptVisitor : VerifyScriptVisitor {
 	}
 }
 
-class ScriptClassInCodeVerifyScriptVisitor : VerifyScriptVisitor {
+class VerifyScriptVisitorScriptClassInCode : VerifyScriptVisitor {
 	override string[] visit(NativeScript script, string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
 		import helpers : sortBy;
@@ -390,7 +390,7 @@ class ScriptClassInCodeVerifyScriptVisitor : VerifyScriptVisitor {
 	}
 }
 
-class SymbolPrefixVerifyLibraryVisitor : VerifyLibraryVisitor {
+class VerifyLibraryVisitorSymbolPrefix : VerifyLibraryVisitor {
 	override string[] visit(NativeLibrary library, string project_path, Project project, KlassInfo[] class_infos) {
 		string[] errors;
 
@@ -403,7 +403,7 @@ class SymbolPrefixVerifyLibraryVisitor : VerifyLibraryVisitor {
 	}
 }
 
-class DllPathVerifyLibraryVisitor : VerifyLibraryVisitor {
+class VerifyLibraryVisitorDllPath : VerifyLibraryVisitor {
 	override string[] visit(NativeLibrary library, string project_path, Project project, KlassInfo[] class_infos) {
 		string[] errors;
 
