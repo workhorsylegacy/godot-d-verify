@@ -29,7 +29,6 @@ class RefNode {
 		import std.conv : to;
 		import std.regex;
 		import std.algorithm : map;
-		import std.array : array;
 
 
 		foreach (line ; section.splitLines) {
@@ -39,7 +38,7 @@ class RefNode {
 		//		stdout.writefln("??????? line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
 		//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
-					string[] pair = match.hit.split("=").map!(n => n.strip().strip(`"`)).array();
+					auto pair = match.hit.split("=").map!(n => n.strip().strip(`"`));
 					switch (pair[0]) {
 						case "name": this._name = pair[1]; break;
 						case "type": this._type = pair[1]; break;
@@ -51,12 +50,12 @@ class RefNode {
 		//		stdout.writefln("!!!!!!!!!!!!! line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`instance\s*=\s*ExtResource\(\s*\d+\s*\)`))) {
 		//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
-					string[] pair = match.hit.split("=").map!(n => n.strip()).array();
+					auto pair = match.hit.split("=").map!(n => n.strip());
 					int id = pair[1].between("ExtResource(", ")").strip.to!int;
 					this._instance = new ResourceId(id);
 				}
 			} else if (line.matchFirst(`^script\s*=\s*ExtResource\(\s*\d+\s*\)$`)) {
-				string[] pair = line.split("=").map!(n => n.strip()).array();
+				auto pair = line.split("=").map!(n => n.strip());
 				int id = pair[1].between("ExtResource(", ")").strip.to!int;
 				this._script = new ResourceId(id);
 			}
@@ -101,7 +100,6 @@ class RefConnection {
 		import std.conv : to;
 		import std.regex;
 		import std.algorithm : map;
-		import std.array : array;
 
 		foreach (line ; section.splitLines) {
 			// Make sure it is a node
@@ -110,7 +108,7 @@ class RefConnection {
 		//		stdout.writefln("??????? line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
 		//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
-					string[] pair = match.hit.split("=").map!(n => n.strip().strip(`"`)).array();
+					auto pair = match.hit.split("=").map!(n => n.strip().strip(`"`));
 					switch (pair[0]) {
 						case "signal": this._signal = pair[1]; break;
 						case "from": this._from = pair[1]; break;
@@ -157,13 +155,12 @@ class RefExtResource {
 		import std.conv : to;
 		import std.string : format, strip, split, splitLines;
 		import std.algorithm : map;
-		import std.array : array;
 
 		foreach (line ;  segment.splitLines) {
-			foreach (chunk ; line.split(`]`)[0].split(" ")) {
-				string[] pair = chunk.split("=").map!(n => n.strip().strip(`"`)).array();
+			foreach (chunk ; line.before(`]`).split(" ")) {
+				auto pair = chunk.split("=").map!(n => n.strip().strip(`"`));
 				switch (pair[0]) {
-					case "path": this._path = pair[1].split(`res://`)[1]; break;
+					case "path": this._path = pair[1].after(`res://`); break;
 					case "type": this._type = pair[1]; break;
 					case "id": this._id = pair[1].to!int; break;
 					default: break;
@@ -222,7 +219,7 @@ class Project {
 			}
 
 			if (section == "[application]" && line.startsWith("run/main_scene=")) {
-				this._main_scene_path = line.split("run/main_scene=")[1].strip(`"`).split(`res://`)[1];
+				this._main_scene_path = line.after("run/main_scene=").strip(`"`).after(`res://`);
 			}
 		}
 	}
@@ -396,7 +393,7 @@ class NativeScript {
 			}
 
 			if (section == "[resource]" && line.startsWith("class_name = ")) {
-				this._class_name = line.split("class_name = ")[1].strip(`"`);
+				this._class_name = line.after("class_name = ").strip(`"`);
 			}
 		}
 	}
@@ -463,11 +460,11 @@ class NativeLibrary {
 			}
 
 			if (section == "[general]" && line.startsWith("symbol_prefix=")) {
-				this._symbol_prefix = line.split("symbol_prefix=")[1].strip(`"`);
+				this._symbol_prefix = line.after("symbol_prefix=").strip(`"`);
 			} else if (section == "[entry]" && line.startsWith("Windows.64=")) {
-				this._dll_windows_path = line.split("Windows.64=")[1].strip(`"`).split(`res://`)[1];
+				this._dll_windows_path = line.after("Windows.64=").strip(`"`).after(`res://`);
 			} else if (section == "[entry]" && line.startsWith("X11.64=")) {
-				this._dll_linux_path = line.split("X11.64=")[1].strip(`"`).split(`res://`)[1];
+				this._dll_linux_path = line.after("X11.64=").strip(`"`).after(`res://`);
 			}
 		}
 	}

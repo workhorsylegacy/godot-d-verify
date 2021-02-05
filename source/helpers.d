@@ -74,13 +74,13 @@ string toPosixPath(string path) {
 	return path;
 }
 
-T[] sortBy(T, string field_name)(T[] things) {
+auto sortBy(T, string field_name)(T[] things) {
 	import std.algorithm : sort;
-	import std.array : array;
+	import std.string : format;
 
-	alias sortFilter = (a, b) => mixin("a." ~ field_name ~ " < b." ~ field_name);
+	alias sortFilter = (a, b) => mixin("a.%s < b.%s".format(field_name, field_name));
 
-	return things.sort!(sortFilter).array;
+	return things.sort!(sortFilter);
 }
 
 S before(S)(S value, S separator) if (isSomeString!S) {
@@ -105,7 +105,6 @@ S after(S)(S value, S separator) if (isSomeString!S) {
 	return value[start .. $];
 }
 
-S between(S)(S value, S before, S after) if (isSomeString!S) {
-	import std.string : split;
-	return value.split(before)[1].split(after)[0];
+S between(S)(S value, S front, S back) if (isSomeString!S) {
+	return value.after(front).before(back);
 }
