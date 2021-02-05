@@ -207,7 +207,8 @@ class Project {
 	this(string file_name) {
 		import std.string : format, strip, split, splitLines, startsWith, replace;
 		import std.file : exists;
-		import std.regex : matchFirst;
+		import std.regex : regex, matchFirst, matchAll;
+		import std.algorithm : map, canFind;
 
 		this._path = file_name;
 
@@ -222,10 +223,21 @@ class Project {
 			foreach (line ; section.splitLines) {
 				if (matchFirst(line, r"^\[\w+\]$")) {
 					heading = line;
+					continue;
+				} else if (! line.canFind("=")) {
+					continue;
 				}
 
-				if (heading == "[application]" && line.startsWith("run/main_scene=")) {
-					this._main_scene_path = line.after("run/main_scene=").strip(`"`).after(`res://`);
+				switch (heading) {
+					case "[application]":
+						auto pair = line.split("=").map!(n => n.strip.strip(`"`));
+						switch (pair[0]) {
+							case "run/main_scene": this._main_scene_path = pair[1].after(`res://`); break;
+							default: break;
+						}
+						break;
+					default:
+						break;
 				}
 			}
 		}
@@ -362,7 +374,8 @@ class NativeScript {
 	this(string file_name) {
 		import std.string : format, strip, split, splitLines, startsWith, replace;
 		import std.file : exists;
-		import std.regex : matchFirst;
+		import std.regex : regex, matchFirst, matchAll;
+		import std.algorithm : map, canFind;
 
 		this._path = file_name;
 
@@ -380,13 +393,23 @@ class NativeScript {
 						default: break;
 					}
 				}
-
 				if (matchFirst(line, r"^\[\w+\]$")) {
 					heading = line;
+					continue;
+				} else if (! line.canFind("=")) {
+					continue;
 				}
 
-				if (heading == "[resource]" && line.startsWith("class_name = ")) {
-					this._class_name = line.after("class_name = ").strip(`"`);
+				switch (heading) {
+					case "[resource]":
+						auto pair = line.split("=").map!(n => n.strip.strip(`"`));
+						switch (pair[0]) {
+							case "class_name": this._class_name = pair[1]; break;
+							default: break;
+						}
+						break;
+					default:
+						break;
 				}
 			}
 		}
@@ -436,7 +459,8 @@ class NativeLibrary {
 	this(string file_name) {
 		import std.string : format, strip, split, splitLines, startsWith, replace;
 		import std.file : exists;
-		import std.regex : matchFirst;
+		import std.regex : regex, matchFirst, matchAll;
+		import std.algorithm : map, canFind;
 
 		this._path = file_name;
 
@@ -451,14 +475,29 @@ class NativeLibrary {
 			foreach (line ; section.splitLines) {
 				if (matchFirst(line, r"^\[\w+\]$")) {
 					heading = line;
+					continue;
+				} else if (! line.canFind("=")) {
+					continue;
 				}
 
-				if (heading == "[general]" && line.startsWith("symbol_prefix=")) {
-					this._symbol_prefix = line.after("symbol_prefix=").strip(`"`);
-				} else if (heading == "[entry]" && line.startsWith("Windows.64=")) {
-					this._dll_windows_path = line.after("Windows.64=").strip(`"`).after(`res://`);
-				} else if (heading == "[entry]" && line.startsWith("X11.64=")) {
-					this._dll_linux_path = line.after("X11.64=").strip(`"`).after(`res://`);
+				switch (heading) {
+					case "[general]":
+						auto pair = line.split("=").map!(n => n.strip.strip(`"`));
+						switch (pair[0]) {
+							case "symbol_prefix": this._symbol_prefix = pair[1]; break;
+							default: break;
+						}
+						break;
+					case "[entry]":
+						auto pair = line.split("=").map!(n => n.strip.strip(`"`));
+						switch (pair[0]) {
+							case "Windows.64": this._dll_windows_path = pair[1].after(`res://`); break;
+							case "X11.64": this._dll_linux_path = pair[1].after(`res://`); break;
+							default: break;
+						}
+						break;
+					default:
+						break;
 				}
 			}
 		}
