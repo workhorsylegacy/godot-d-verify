@@ -170,7 +170,7 @@ class Project {
 	NativeLibrary[string] _libraries;
 
 	this(string file_name) {
-		import std.string : format, strip, split, splitLines, startsWith;
+		import std.string : format, strip, split, splitLines, startsWith, replace;
 		import std.file : read, exists;
 		import std.regex : matchFirst;
 
@@ -182,7 +182,7 @@ class Project {
 			return;
 		}
 
-		auto data = cast(string)read(file_name);
+		auto data = (cast(string)read(file_name)).replace("\r\n", "\n");
 		string section = null;
 		foreach (line ; data.splitLines) {
 			if (matchFirst(line, r"^\[\w+\]$")) {
@@ -204,7 +204,7 @@ class Scene {
 	RefConnection[] _connections;
 
 	this(string file_name) {
-		import std.string : format, split, splitLines, startsWith, strip;
+		import std.string : format, split, splitLines, startsWith, strip, replace;
 		import std.file : read, exists;
 
 		this._path = file_name;
@@ -215,7 +215,7 @@ class Scene {
 		}
 
 		// FIXME Update RefExtResource and RefConnection to use section instead of line
-		auto data = cast(string)read(file_name);
+		auto data = (cast(string)read(file_name)).replace("\r\n", "\n");
 		foreach (line ; data.splitLines) {
 			if (line.startsWith("[ext_resource ")) {
 				auto res = new RefExtResource(line);
@@ -230,7 +230,8 @@ class Scene {
 			}
 		}
 
-		foreach (section ; data.split(`\n\n`)) {
+		foreach (section ; data.split("\n\n")) {
+			section = section.strip;
 			if (section.startsWith("[node ")) {
 				auto node = new RefNode(section);
 				if (node.isValid) {
@@ -265,7 +266,7 @@ class NativeScript {
 	RefExtResource _native_library = null;
 
 	this(string file_name) {
-		import std.string : format, strip, split, splitLines, startsWith;
+		import std.string : format, strip, split, splitLines, startsWith, replace;
 		import std.file : read, exists;
 		import std.regex : matchFirst;
 
@@ -276,7 +277,7 @@ class NativeScript {
 			return;
 		}
 
-		auto data = cast(string)read(this._path);
+		auto data = (cast(string)read(this._path)).replace("\r\n", "\n");
 		string section = null;
 		foreach (line ; data.splitLines) {
 			if (line.startsWith("[ext_resource ")) {
@@ -308,7 +309,7 @@ class NativeLibrary {
 	string _symbol_prefix = null;
 
 	this(string file_name) {
-		import std.string : format, strip, split, splitLines, startsWith;
+		import std.string : format, strip, split, splitLines, startsWith, replace;
 		import std.file : read, exists;
 		import std.regex : matchFirst;
 
@@ -320,7 +321,7 @@ class NativeLibrary {
 			return;
 		}
 
-		auto data = cast(string)read(this._path);
+		auto data = (cast(string)read(this._path)).replace("\r\n", "\n");
 		string section = null;
 		foreach (line ; data.splitLines) {
 			if (matchFirst(line, r"^\[\w+\]$")) {

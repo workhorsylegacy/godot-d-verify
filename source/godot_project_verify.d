@@ -34,6 +34,7 @@ string[][string] verifyProject(string project_path, Project project, KlassInfo[]
 		string[] errors;
 		errors ~= new ResourceVerifySceneVisitor().visit(scene, project_path, project, class_infos);
 		errors ~= new SignalMethodInCodeVerifySceneVisitor().visit(scene, project_path, project, class_infos);
+		errors ~= new SceneTypeClassTypeMismatchVerifySceneVisitor().visit(scene, project_path, project, class_infos);
 		if (errors.length) retval["tscn: %s".format(scene._path)] = errors;
 	}
 
@@ -116,6 +117,12 @@ unittest {
 			auto errors = setupTest(`test/project_scene_signal_no_method_attribute/`);
 			errors.shouldEqual([`tscn: Level/Level.tscn`:
 				[`Signal method "on_button_pressed" found in class "level.Level" but missing @Method attribute`]
+			]);
+		}),
+		it("Should fail when scene type is not same as script code type", () {
+			auto errors = setupTest(`test/project_script_code_class_wrong_type/`);
+			errors.shouldEqual([`tscn: Player/Player.tscn`:
+				[`Scene "Player" is type "Spatial" but attached script "Player" is type "GodotScript!Area"`]
 			]);
 		})
 	);
@@ -271,6 +278,54 @@ class SignalMethodInCodeVerifySceneVisitor : VerifySceneVisitor {
 					} else if (! is_method_found) {
 						errors ~= `Signal method "%s" not found in class "%s"`.format(method, class_name);
 					}
+				}
+			}
+		}
+
+		return errors;
+	}
+}
+
+class SceneTypeClassTypeMismatchVerifySceneVisitor : VerifySceneVisitor {
+	override string[] visit(Scene scene, string project_path, Project project, KlassInfo[] class_infos) {
+		import std.string : format;
+		import std.file : exists;
+		import std.path : extension;
+		import std.algorithm : filter;
+		import std.array : array;
+		import helpers : sortBy;
+		string[] errors;
+
+		// Find all the nodes that have a script
+		foreach (node ; scene._nodes.filter!(n => n._script)) {
+			// Find all the resources with the same id
+			auto resources = scene._resources
+				.filter!(r => r._id == node._script.id)
+				.filter!(r => r._path.extension == ".gdns")
+				.filter!(r => r._path in project._scripts)
+				.array;
+
+			// Make sure the node is referencing an existing resource
+			if (resources.length == 0) {
+				//errors ~= `Node script resource %s was not found`.format(node._script.id);
+				continue;
+			}
+			auto resource = resources[0];
+
+			auto script = project._scripts[resource._path];
+			string class_name = script._class_name;
+
+			// Find all the classes with same type
+			auto classes = class_infos
+				.filter!(c => c.base_class_name == "GodotScript")
+				.filter!(c => c.full_class_name == class_name)
+				//.filter!(c => c.base_class_template == node._type)
+				.array;
+
+			foreach (class_info ; classes) {
+				if (class_info.base_class_template != node._type) {
+					errors ~= `Scene "%s" is type "%s" but attached script "%s" is type "%s"`
+						.format(node._name, node._type, class_info.class_name, class_info.full_base_class_name);
 				}
 			}
 		}

@@ -13,7 +13,7 @@
 * [X] Should fail when scene resource file is not found
 * [X] Should fail when signal method doesn't exists in code
 * [X] Should fail when signal method exists but missing Method attribute
-* [ ] Should fail when scene class exists but is the wrong type
+* [X] Should fail when scene type is not same as script code type
 
 ## Script
 * [X] Should fail when script native library is not specified

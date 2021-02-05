@@ -23,6 +23,16 @@ class KlassInfo {
 	string base_class_template = null;
 	MethodInfo[] methods;
 
+	string full_class_name() {
+		import std.string : format;
+		return `%s.%s`.format(_module, class_name);
+	}
+
+	string full_base_class_name() {
+		import std.string : format;
+		return `%s!%s`.format(base_class_name, base_class_template);
+	}
+
 	bool isValid() {
 		return class_name != null;
 	}
