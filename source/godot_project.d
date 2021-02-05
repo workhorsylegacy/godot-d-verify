@@ -35,14 +35,10 @@ class HeadingNode {
 		import std.regex;
 		import std.algorithm : map;
 
-
 		foreach (line ; section.splitLines) {
 			// Make sure it is a node
 			if (HeadingNode.isHeading(line)) {
-	//			stdout.writefln("??????? NOT node, exiting. line: %s", line); stdout.flush();
-		//		stdout.writefln("??????? line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
-		//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
 					auto pair = match.hit.split("=").map!(n => n.strip().strip(`"`));
 					switch (pair[0]) {
 						case "name": this._name = pair[1]; break;
@@ -52,9 +48,7 @@ class HeadingNode {
 					}
 				}
 
-		//		stdout.writefln("!!!!!!!!!!!!! line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`instance\s*=\s*ExtResource\(\s*\d+\s*\)`))) {
-		//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
 					auto pair = match.hit.split("=").map!(n => n.strip());
 					int id = pair[1].between("ExtResource(", ")").strip.to!int;
 					this._instance = new EntryExtResource(id);
@@ -114,10 +108,7 @@ class HeadingConnection {
 		foreach (line ; section.splitLines) {
 			// Make sure it is a node
 			if (HeadingConnection.isHeading(line)) {
-	//			stdout.writefln("??????? NOT node, exiting. line: %s", line); stdout.flush();
-		//		stdout.writefln("??????? line: %s", line); stdout.flush();
 				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
-		//			stdout.writefln(`    match.hit: "%s"`, match.hit); stdout.flush();
 					auto pair = match.hit.split("=").map!(n => n.strip().strip(`"`));
 					switch (pair[0]) {
 						case "signal": this._signal = pair[1]; break;
