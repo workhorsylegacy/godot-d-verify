@@ -509,16 +509,22 @@ T tryParseHeading(T)(string section) {
 }
 
 string[] readFileSections(string file_name) {
-	import std.string : format, split, splitLines, startsWith, strip, replace;
+	import std.string : split, startsWith, strip, replace;
 	import std.file : read;
 	import std.array : array;
 	import std.algorithm : map;
 
 	string[] sections =
-		(cast(string)read(file_name))
+		(cast(string) read(file_name))
 		.replace("\r\n", "\n")
-		.split("[")
+		.split("\n[")
 		.map!(sec => ("[" ~ sec).strip)
 		.array;
+
+	// Remove the extra "[" from the start of the first section
+	if (sections.length > 0 && sections[0].startsWith("[")) {
+		sections[0] = sections[0][1 .. $];
+	}
+
 	return sections;
 }
