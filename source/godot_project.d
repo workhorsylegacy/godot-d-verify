@@ -229,7 +229,7 @@ class Project {
 		}
 
 		foreach (section ; readFileSections(file_name)) {
-			auto data = parseSectionKeyValuePiars(section);
+			auto data = parseAllSectionKeyValues(section);
 			if (auto heading = data.get("[application]", null)) {
 				if (auto entry = heading.get("run/main_scene", null)) {
 					this._main_scene_path = entry.after(`res://`);
@@ -389,7 +389,7 @@ class NativeScript {
 			}
 
 			// [resource]
-			auto data = parseSectionKeyValuePiars(section);
+			auto data = parseAllSectionKeyValues(section);
 			if (auto heading = data.get("[resource]", null)) {
 				if (auto entry = heading.get("class_name", null)) {
 					this._class_name = entry;
@@ -452,7 +452,7 @@ class NativeLibrary {
 		}
 
 		foreach (section ; readFileSections(this._path)) {
-			auto data = parseSectionKeyValuePiars(section);
+			auto data = parseAllSectionKeyValues(section);
 			if (auto heading = data.get("[general]", null)) {
 				if (auto entry = heading.get("symbol_prefix", null)) {
 					this._symbol_prefix = entry;
@@ -533,7 +533,7 @@ string[] readFileSections(string file_name) {
 	return sections;
 }
 
-string[string][string] parseSectionKeyValuePiars(string section) {
+string[string][string] parseAllSectionKeyValues(string section) {
 	import std.string : splitLines;
 	import std.regex : matchFirst;
 	import std.algorithm : canFind;
