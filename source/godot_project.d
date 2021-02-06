@@ -534,14 +534,14 @@ string[] readFileSections(string file_name) {
 }
 
 string[string][string] parseSectionKeyValuePiars(string section) {
-	import std.string : strip, split, splitLines;
+	import std.string : splitLines;
 	import std.regex : matchFirst;
-	import std.algorithm : map, canFind;
+	import std.algorithm : canFind;
 
 	string[string][string] retval;
 	string heading = null;
 	foreach (line ; section.splitLines) {
-		if (matchFirst(line, r"^\[\w+\]$")) {
+		if (line.matchFirst(r"^\[\w+\]$")) {
 			heading = line;
 			//retval[heading] = (string[string]).init;
 			continue;
@@ -549,10 +549,7 @@ string[string][string] parseSectionKeyValuePiars(string section) {
 			continue;
 		}
 
-		auto pair = line.split("=").map!(n => n.strip.strip(`"`));
-		if (pair.length >= 2) {
-			string key = pair[0];
-			string value = pair[1];
+		foreach (key, value ; parseKeyValues(line)) {
 			retval[heading][key] = value;
 		}
 	}
@@ -560,23 +557,38 @@ string[string][string] parseSectionKeyValuePiars(string section) {
 }
 
 string[string] parseKeyValues(string line) {
-	import std.string : format, strip, split, splitLines;
-	import std.conv : to;
-	import std.regex : regex, matchFirst, matchAll;
+	import std.string : strip, split;
+	import std.regex : regex, matchAll;
 	import std.algorithm : map;
 
 	string[string] retval;
 
 	// name = "Level"
-	foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
+	foreach (match; line.matchAll(regex(`[\w_/\.]+\s*=\s*"[\s\w\.]*"`))) {
 		auto pair = match.hit.split("=").map!(n => n.strip.strip(`"`));
 		if (pair.length >= 2) {
 			retval[pair[0]] = pair[1];
 		}
 	}
 
-	// id = 9 total=3.97
-	foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*(\d|\.)*`))) {
+	// singleton = false
+	foreach (match; line.matchAll(regex(`[\w_/\.]+\s*=\s*(false|true)`))) {
+		auto pair = match.hit.split("=").map!(n => n.strip.strip(`"`));
+		if (pair.length >= 2) {
+			retval[pair[0]] = pair[1];
+		}
+	}
+
+	// id = 9
+	foreach (match; line.matchAll(regex(`[\w_/\.]+\s*=\s*\d+`))) {
+		auto pair = match.hit.split("=").map!(n => n.strip());
+		if (pair.length >= 2) {
+			retval[pair[0]] = pair[1];
+		}
+	}
+
+	// total=3.97
+	foreach (match; line.matchAll(regex(`[\w_/\.]+\s*=\s*\d+\.\d+`))) {
 		auto pair = match.hit.split("=").map!(n => n.strip());
 		if (pair.length >= 2) {
 			retval[pair[0]] = pair[1];
@@ -584,7 +596,7 @@ string[string] parseKeyValues(string line) {
 	}
 
 	// instance = ExtResource( 27 )
-	foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*[A-Za-z]*\(\s*\d+\s*\)`))) {
+	foreach (match; line.matchAll(regex(`[\w_/\.]+\s*=\s*[A-Za-z]*\(\s*\d+\s*\)`))) {
 		auto pair = match.hit.split("=").map!(n => n.strip());
 		if (pair.length >= 2) {
 			retval[pair[0]] = pair[1];
@@ -592,7 +604,7 @@ string[string] parseKeyValues(string line) {
 	}
 
 	// path = "res://assets/player.png"
-	foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|/|\.|:)*"`))) {
+	foreach (match; line.matchAll(regex(`[\w_/\.]+\s*=\s*"res://[\w/\.:]*"`))) {
 		auto pair = match.hit.split("=").map!(n => n.strip.strip(`"`));
 		if (pair.length >= 2) {
 			retval[pair[0]] = pair[1];
@@ -607,13 +619,17 @@ unittest {
 
 	describe("godot_project#parseKeyValues",
 		it("Should parse key values", delegate() {
-			auto data = `[ext_resource path="res://aaa/bbb.thing965/blah.jpg" type="Texture" id=1 total=8.45]`;
+			auto data = `[ext_resource path="res://aaa/bbb.thing965/blah.jpg" singleton = false dot.67.name="res://game.dll" type="Texture" total=8.45 has_space="Bob Smith" is_empty="" id=1]`;
 			auto result = parseKeyValues(data);
 			auto expected = [
-				`path`: `res://aaa/bbb.thing965/blah.jpg`,
 				`type`: `Texture`,
+				`path`: `res://aaa/bbb.thing965/blah.jpg`,
 				`id`: `1`,
-				`total`: `8.45`
+				`total`: `8.45`,
+				`has_space`: `Bob Smith`,
+				`is_empty`: ``,
+				`singleton`: `false`,
+				`dot.67.name`: `res://game.dll`
 			];
 			result.shouldEqual(expected);
 		})
