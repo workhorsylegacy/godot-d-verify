@@ -32,31 +32,41 @@ class HeadingNode {
 	this(string section) {
 		import std.string : format, strip, split, splitLines;
 		import std.conv : to;
-		import std.regex;
+		import std.regex : regex, matchFirst, matchAll;
 		import std.algorithm : map;
 
+		bool got_heading = false;
 		foreach (line ; section.splitLines) {
-			// Make sure it is a node
-			if (HeadingNode.isHeading(line)) {
-				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
-					auto pair = match.hit.split("=").map!(n => n.strip().strip(`"`));
-					switch (pair[0]) {
-						case "name": this._name = pair[1]; break;
-						case "type": this._type = pair[1]; break;
-						case "parent": this._parent = pair[1]; break;
+			// Node heading
+			// [node name="AnimationPlayer" type="AnimationPlayer" parent="." instance=ExtResource( 3 )]
+			if (! got_heading && HeadingNode.isHeading(line)) {
+				got_heading = true;
+				foreach (key, value ; parseKeyValues(line)) {
+					switch (key) {
+						case "name": this._name = value; break;
+						case "type": this._type = value; break;
+						case "parent": this._parent = value; break;
+						case "instance":
+							int id = value.between("ExtResource(", ")").strip.to!int;
+							this._instance = new EntryExtResource(id);
+							break;
 						default: break;
 					}
 				}
+			}
 
-				foreach (match; line.matchAll(regex(`instance\s*=\s*ExtResource\(\s*\d+\s*\)`))) {
-					auto pair = match.hit.split("=").map!(n => n.strip());
-					int id = pair[1].between("ExtResource(", ")").strip.to!int;
-					this._instance = new EntryExtResource(id);
+			// Key value pairs under heading
+			// script = ExtResource( 2 )
+			if (got_heading) {
+				foreach (key, value ; parseKeyValues(line)) {
+					switch (key) {
+						case "script":
+							int id = value.between("ExtResource(", ")").strip.to!int;
+							this._script = new EntryExtResource(id);
+							break;
+						default: break;
+					}
 				}
-			} else if (line.matchFirst(`^script\s*=\s*ExtResource\(\s*\d+\s*\)$`)) {
-				auto pair = line.split("=").map!(n => n.strip());
-				int id = pair[1].between("ExtResource(", ")").strip.to!int;
-				this._script = new EntryExtResource(id);
 			}
 		}
 	}
@@ -105,16 +115,18 @@ class HeadingConnection {
 		import std.regex;
 		import std.algorithm : map;
 
+		bool got_heading = false;
 		foreach (line ; section.splitLines) {
-			// Make sure it is a node
-			if (HeadingConnection.isHeading(line)) {
-				foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
-					auto pair = match.hit.split("=").map!(n => n.strip().strip(`"`));
-					switch (pair[0]) {
-						case "signal": this._signal = pair[1]; break;
-						case "from": this._from = pair[1]; break;
-						case "to": this._to = pair[1]; break;
-						case "method": this._method = pair[1]; break;
+			// Connection heading
+			// [connection signal="pressed" from="Button" to="." method="on_button_pressed"]
+			if (! got_heading && HeadingConnection.isHeading(line)) {
+				got_heading = true;
+				foreach (key, value ; parseKeyValues(line)) {
+					switch (key) {
+						case "signal": this._signal = value; break;
+						case "from": this._from = value; break;
+						case "to": this._to = value; break;
+						case "method": this._method = value; break;
 						default: break;
 					}
 				}
@@ -162,14 +174,19 @@ class HeadingExtResource {
 		import std.string : format, strip, split, splitLines;
 		import std.algorithm : map;
 
-		foreach (line ;  section.splitLines) {
-			foreach (chunk ; line.before(`]`).split(" ")) {
-				auto pair = chunk.split("=").map!(n => n.strip().strip(`"`));
-				switch (pair[0]) {
-					case "path": this._path = pair[1].after(`res://`); break;
-					case "type": this._type = pair[1]; break;
-					case "id": this._id = pair[1].to!int; break;
-					default: break;
+		bool got_heading = false;
+		foreach (line ; section.splitLines) {
+			// ExtResource heading
+			// [ext_resource path="res://src/ClothHolder/ClothHolder.tscn" type="PackedScene" id=21]
+			if (! got_heading && HeadingExtResource.isHeading(line)) {
+				got_heading = true;
+				foreach (key, value ; parseKeyValues(line)) {
+					switch (key) {
+						case "path": this._path = value.after(`res://`); break;
+						case "type": this._type = value; break;
+						case "id": this._id = value.to!int; break;
+						default: break;
+					}
 				}
 			}
 		}
@@ -370,6 +387,7 @@ class NativeScript {
 		}
 
 		foreach (section ; readFileSections(this._path)) {
+			// [ext_resource path="res://libgame.gdnlib" type="GDNativeLibrary" id=1]
 			foreach (line ; section.splitLines) {
 				if (auto res = tryParseHeading!HeadingExtResource(line)) {
 					switch (res._type) {
@@ -379,6 +397,7 @@ class NativeScript {
 				}
 			}
 
+			// [resource]
 			auto data = parseSectionKeyValuePiars(section);
 			if (auto heading = data.get("[resource]", null)) {
 				if (auto entry = heading.get("class_name", null)) {
@@ -549,4 +568,65 @@ string[string][string] parseSectionKeyValuePiars(string section) {
 		}
 	}
 	return retval;
+}
+
+string[string] parseKeyValues(string line) {
+	import std.string : format, strip, split, splitLines;
+	import std.conv : to;
+	import std.regex : regex, matchFirst, matchAll;
+	import std.algorithm : map;
+
+	string[string] retval;
+
+	// name = "Level"
+	foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|\.)*"`))) {
+		auto pair = match.hit.split("=").map!(n => n.strip.strip(`"`));
+		if (pair.length >= 2) {
+			retval[pair[0]] = pair[1];
+		}
+	}
+
+	// id = 9 total=3.97
+	foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*(\d|\.)*`))) {
+		auto pair = match.hit.split("=").map!(n => n.strip());
+		if (pair.length >= 2) {
+			retval[pair[0]] = pair[1];
+		}
+	}
+
+	// instance = ExtResource( 27 )
+	foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*[A-Za-z]*\(\s*\d+\s*\)`))) {
+		auto pair = match.hit.split("=").map!(n => n.strip());
+		if (pair.length >= 2) {
+			retval[pair[0]] = pair[1];
+		}
+	}
+
+	// path = "res://assets/player.png"
+	foreach (match; line.matchAll(regex(`[A-Za-z]*\s*=\s*"(\w|/|\.|:)*"`))) {
+		auto pair = match.hit.split("=").map!(n => n.strip.strip(`"`));
+		if (pair.length >= 2) {
+			retval[pair[0]] = pair[1];
+		}
+	}
+
+	return retval;
+}
+
+unittest {
+	import BDD;
+
+	describe("godot_project#parseKeyValues",
+		it("Should parse key values", delegate() {
+			auto data = `[ext_resource path="res://aaa/bbb.thing965/blah.jpg" type="Texture" id=1 total=8.45]`;
+			auto result = parseKeyValues(data);
+			auto expected = [
+				`path`: `res://aaa/bbb.thing965/blah.jpg`,
+				`type`: `Texture`,
+				`id`: `1`,
+				`total`: `8.45`
+			];
+			result.shouldEqual(expected);
+		})
+	);
 }
