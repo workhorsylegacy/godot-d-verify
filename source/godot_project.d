@@ -30,10 +30,8 @@ class HeadingNode {
 	}
 
 	this(string section) {
-		import std.string : format, strip, split, splitLines;
+		import std.string : strip, splitLines;
 		import std.conv : to;
-		import std.regex : regex, matchFirst, matchAll;
-		import std.algorithm : map;
 
 		bool got_heading = false;
 		foreach (line ; section.splitLines) {
@@ -110,10 +108,8 @@ class HeadingConnection {
 	}
 
 	this(string section) {
-		import std.string : format, strip, split, splitLines;
+		import std.string : splitLines;
 		import std.conv : to;
-		import std.regex;
-		import std.algorithm : map;
 
 		bool got_heading = false;
 		foreach (line ; section.splitLines) {
@@ -171,8 +167,7 @@ class HeadingExtResource {
 
 	this(string section) {
 		import std.conv : to;
-		import std.string : format, strip, split, splitLines;
-		import std.algorithm : map;
+		import std.string : splitLines;
 
 		bool got_heading = false;
 		foreach (line ; section.splitLines) {
@@ -222,10 +217,8 @@ class Project {
 	NativeLibrary[string] _libraries;
 
 	this(string file_name) {
-		import std.string : format, strip, split, splitLines, startsWith, replace;
+		import std.string : format;
 		import std.file : exists;
-		import std.regex : regex, matchFirst, matchAll;
-		import std.algorithm : map, canFind;
 
 		this._path = file_name;
 
@@ -279,7 +272,7 @@ class Scene {
 	HeadingConnection[] _connections;
 
 	this(string file_name) {
-		import std.string : format, split, splitLines, startsWith, strip, replace;
+		import std.string : format;
 		import std.file : exists;
 
 		this._path = file_name;
@@ -374,10 +367,8 @@ class NativeScript {
 	HeadingExtResource _native_library = null;
 
 	this(string file_name) {
-		import std.string : format, strip, split, splitLines, startsWith, replace;
+		import std.string : format, splitLines;
 		import std.file : exists;
-		import std.regex : regex, matchFirst, matchAll;
-		import std.algorithm : map, canFind;
 
 		this._path = file_name;
 
@@ -449,10 +440,8 @@ class NativeLibrary {
 	string _symbol_prefix = null;
 
 	this(string file_name) {
-		import std.string : format, strip, split, splitLines, startsWith, replace;
+		import std.string : format;
 		import std.file : exists;
-		import std.regex : regex, matchFirst, matchAll;
-		import std.algorithm : map, canFind;
 
 		this._path = file_name;
 
