@@ -215,6 +215,8 @@ class Project {
 
 		foreach (section ; readFileSections(file_name)) {
 			auto data = parseAllSectionKeyValues(section);
+			// [application]
+			// run/main_scene="res://src/Level/Level.tscn"
 			if (auto heading = data.get("[application]", null)) {
 				if (auto entry = heading.get("run/main_scene", null)) {
 					this._main_scene_path = entry.after(`res://`);
@@ -391,6 +393,7 @@ class NativeScript {
 			}
 
 			// [resource]
+			// class_name = "player.Player"
 			auto data = parseAllSectionKeyValues(section);
 			if (auto heading = data.get("[resource]", null)) {
 				if (auto entry = heading.get("class_name", null)) {
@@ -455,10 +458,15 @@ class NativeLibrary {
 
 		foreach (section ; readFileSections(this._path)) {
 			auto data = parseAllSectionKeyValues(section);
+			// [general]
+			// symbol_prefix="game"
 			if (auto heading = data.get("[general]", null)) {
 				if (auto entry = heading.get("symbol_prefix", null)) {
 					this._symbol_prefix = entry;
 				}
+			// [entry]
+			// Windows.64="res://game.dll"
+			// X11.64="res://libgame.so"
 			} else if (auto heading = data.get("[entry]", null)) {
 				if (auto entry = heading.get("Windows.64", null)) {
 					this._dll_windows_path = entry.after(`res://`);
@@ -555,7 +563,6 @@ string[string][string] parseAllSectionKeyValues(string section) {
 	foreach (line ; section.splitLines) {
 		if (line.matchFirst(r"^\[\w+\]$")) {
 			heading = line;
-			//retval[heading] = (string[string]).init;
 			continue;
 		} else if (! line.canFind("=")) {
 			continue;
