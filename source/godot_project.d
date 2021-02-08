@@ -612,7 +612,7 @@ string[string] parseKeyValues(string line) {
 	}
 
 	// instance = ExtResource( 27 )
-	foreach (match; line.matchAll(regex(`[\w_/\.]+\s*=\s*[A-Za-z]*\(\s*\d+\s*\)`))) {
+	foreach (match; line.matchAll(regex(`[\w_/\.]+\s*=\s*[A-Za-z]+\(\s*\d+\s*\)`))) {
 		auto pair = match.hit.split("=").map!(n => n.strip());
 		if (pair.length >= 2) {
 			retval[pair[0]] = pair[1];
