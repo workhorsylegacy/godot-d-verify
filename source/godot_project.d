@@ -273,18 +273,21 @@ class Scene {
 			final switch(getSectionType(section)) {
 				case SectionType.Unknown:
 					break;
+				// [node name="Level" type="Spatial"]
 				case SectionType.Node:
 					auto node = new HeadingNode(section);
 					if (node.isValid) {
 						_nodes ~= node;
 					}
 					break;
+				// [connection signal="area_exited" from="ScreenBox" to="." method="on_screen_box_area_exited"]
 				case SectionType.Connection:
 					auto conn = new HeadingConnection(section);
 					if (conn.isValid) {
 						_connections ~= conn;
 					}
 					break;
+				// [ext_resource path="res://src/ClothHolder/ClothHolder.tscn" type="PackedScene" id=21]
 				case SectionType.ExtResource:
 					auto resource = new HeadingExtResource(section);
 					if (resource.isValid) {
