@@ -24,11 +24,6 @@ class HeadingNode {
 	EntryExtResource _instance = null;
 	EntryExtResource _script = null;
 
-	static bool isHeading(string line) {
-		import std.regex : matchFirst;
-		return ! line.matchFirst(r"^\[node (\w|\W)*\]").empty;
-	}
-
 	this(string section) {
 		import std.string : strip, splitLines;
 		import std.conv : to;
@@ -37,7 +32,7 @@ class HeadingNode {
 		foreach (line ; section.splitLines) {
 			// Node heading
 			// [node name="AnimationPlayer" type="AnimationPlayer" parent="." instance=ExtResource( 3 )]
-			if (! got_heading && HeadingNode.isHeading(line)) {
+			if (! got_heading && SectionType.Node == getSectionType(line)) {
 				got_heading = true;
 				foreach (key, value ; parseKeyValues(line)) {
 					switch (key) {
@@ -102,11 +97,6 @@ class HeadingConnection {
 	string _to = null;
 	string _method = null;
 
-	static bool isHeading(string line) {
-		import std.regex : matchFirst;
-		return ! line.matchFirst(r"^\[connection (\w|\W)*\]$").empty;
-	}
-
 	this(string section) {
 		import std.string : splitLines;
 		import std.conv : to;
@@ -115,7 +105,7 @@ class HeadingConnection {
 		foreach (line ; section.splitLines) {
 			// Connection heading
 			// [connection signal="pressed" from="Button" to="." method="on_button_pressed"]
-			if (! got_heading && HeadingConnection.isHeading(line)) {
+			if (! got_heading && SectionType.Connection == getSectionType(line)) {
 				got_heading = true;
 				foreach (key, value ; parseKeyValues(line)) {
 					switch (key) {
@@ -160,11 +150,6 @@ class HeadingExtResource {
 	string _type = null;
 	int _id = -1;
 
-	static bool isHeading(string line) {
-		import std.regex : matchFirst;
-		return ! line.matchFirst(r"^\[ext_resource (\w|\W)*\]").empty;
-	}
-
 	this(string section) {
 		import std.conv : to;
 		import std.string : splitLines;
@@ -173,7 +158,7 @@ class HeadingExtResource {
 		foreach (line ; section.splitLines) {
 			// ExtResource heading
 			// [ext_resource path="res://src/ClothHolder/ClothHolder.tscn" type="PackedScene" id=21]
-			if (! got_heading && HeadingExtResource.isHeading(line)) {
+			if (! got_heading && SectionType.ExtResource == getSectionType(line)) {
 				got_heading = true;
 				foreach (key, value ; parseKeyValues(line)) {
 					switch (key) {
@@ -283,12 +268,27 @@ class Scene {
 		}
 
 		foreach (section ; readFileSections(file_name)) {
-			if (auto node = tryParseHeading!HeadingNode(section)) {
-				_nodes ~= node;
-			} else if (auto con = tryParseHeading!HeadingConnection(section)) {
-				this._connections ~= con;
-			} else if (auto res = tryParseHeading!HeadingExtResource(section)) {
-				this._resources ~= res;
+			final switch(getSectionType(section)) {
+				case SectionType.Unknown:
+					break;
+				case SectionType.Node:
+					auto node = new HeadingNode(section);
+					if (node.isValid) {
+						_nodes ~= node;
+					}
+					break;
+				case SectionType.Connection:
+					auto conn = new HeadingConnection(section);
+					if (conn.isValid) {
+						_connections ~= conn;
+					}
+					break;
+				case SectionType.ExtResource:
+					auto resource = new HeadingExtResource(section);
+					if (resource.isValid) {
+						_resources ~= resource;
+					}
+					break;
 			}
 		}
 	}
@@ -379,13 +379,15 @@ class NativeScript {
 
 		foreach (section ; readFileSections(this._path)) {
 			// [ext_resource path="res://libgame.gdnlib" type="GDNativeLibrary" id=1]
-			foreach (line ; section.splitLines) {
-				if (auto res = tryParseHeading!HeadingExtResource(line)) {
-					switch (res._type) {
-						case "GDNativeLibrary": this._native_library = res; break;
-						default: break;
+			switch (getSectionType(section)) {
+				case SectionType.ExtResource:
+					auto resource = new HeadingExtResource(section);
+					if (resource.isValid && resource._type == "GDNativeLibrary") {
+						this._native_library = resource;
 					}
-				}
+					break;
+				default:
+					break;
 			}
 
 			// [resource]
@@ -502,14 +504,24 @@ unittest {
 
 private
 
-T tryParseHeading(T)(string section) {
-	if (T.isHeading(section)) {
-		auto node = new T(section);
-		if (node.isValid) {
-			return node;
-		}
+enum SectionType {
+	Unknown,
+	Node,
+	Connection,
+	ExtResource,
+}
+
+SectionType getSectionType(string section) {
+	import std.regex : matchFirst;
+	if (section.matchFirst(r"^\[node (\w|\W)*\]")) {
+		return SectionType.Node;
+	} else if (section.matchFirst(r"^\[connection (\w|\W)*\]$")) {
+		return SectionType.Connection;
+	} else if (section.matchFirst(r"^\[ext_resource (\w|\W)*\]")) {
+		return SectionType.ExtResource;
 	}
-	return null;
+
+	return SectionType.Unknown;
 }
 
 string[] readFileSections(string file_name) {
