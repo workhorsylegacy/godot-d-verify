@@ -563,13 +563,10 @@ string[string][string] parseAllSectionKeyValues(string section) {
 	foreach (line ; section.splitLines) {
 		if (line.matchFirst(r"^\[\w+\]$")) {
 			heading = line;
-			continue;
-		} else if (! line.canFind("=")) {
-			continue;
-		}
-
-		foreach (key, value ; parseKeyValues(line)) {
-			retval[heading][key] = value;
+		} else if (heading && line.canFind("=")) {
+			foreach (key, value ; parseKeyValues(line)) {
+				retval[heading][key] = value;
+			}
 		}
 	}
 	return retval;
