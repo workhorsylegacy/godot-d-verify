@@ -232,52 +232,72 @@ class VerifySceneVisitorResource : VerifySceneVisitor {
 class VerifySceneVisitorSignalMethodInCode : VerifySceneVisitor {
 	override string[] visit(Scene scene, string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
-		import std.algorithm : canFind;
+		import std.algorithm : canFind, filter, map;
+		import std.array : assocArray, byPair;
 		import std.path : extension;
 		import helpers : sortBy;
 		string[] errors;
 
-		// Get the class name from .tscn -> .gdns -> class_name
+		// Get the class name from scene -> node -> resource -> script -> class_name
 		string class_name = null;
-		foreach (resource ; scene._resources.sortBy!(HeadingExtResource, "_path")) {
-			if (resource._type == "Script" && extension(resource._path) == ".gdns") {
-				NativeScript script = project._scripts[resource._path];
-				class_name = script._class_name;
-			}
-		}
+		{
+			// Get all the node script ids
+			auto ids = scene._nodes
+				.filter!(n => n._script)
+				.map!(n => n._script.id);
+			if (ids.empty) return errors;
 
-		// Just return if there is no class name
-		if (class_name == null) return errors;
+			// Get all the resources with the script id
+			int id = ids.front;
+			auto resources = scene._resources
+				.sortBy!(HeadingExtResource, "_path")
+				.filter!(r => r._id == id)
+				.filter!(r => r._type == "Script")
+				.filter!(r => r._path.extension == ".gdns");
+			if (resources.empty) return errors;
+
+			// Get all the scripts with the same paths as the resources
+			auto resource = resources.front;
+			auto scripts = project._scripts
+				.byPair
+				.filter!(pair => pair.key == resource._path)
+				.map!(pair => pair.value);
+			if (scripts.empty) return errors;
+
+			auto script = scripts.front;
+			class_name = script._class_name;
+			if (class_name == null) return errors;
+		}
 
 		// Get the signal method names
-		string[] methods;
-		foreach (HeadingConnection connection ; scene._connections) {
-			methods ~= connection._method;
-		}
+		auto methods = scene._connections
+			.map!(c => c._method);
+		if (methods.empty) return errors;
+
+		// Get the classes with the same names
+		auto classes = class_infos
+			.sortBy!(KlassInfo, "class_name")
+			.filter!(c => c.full_class_name == class_name);
+		if (classes.empty) return errors;
 
 		// Make sure the classes have the methods
-		foreach (class_info ; class_infos.sortBy!(KlassInfo, "class_name")) {
-			if (class_name == "%s.%s".format(class_info._module, class_info.class_name)) {
-				foreach (method ; methods) {
-					bool is_method_found = false;
-					bool is_attribute_found = false;
-					foreach (method_info ; class_info.methods) {
-						if (method_info.name == method) {
-							is_method_found = true;
+		foreach (class_info ; classes) {
+			foreach (method ; methods) {
+				bool is_method_found = ! class_info.methods
+					.filter!(m => m.name == method)
+					.empty;
 
-							if (method_info.attributes.canFind("Method")) {
-								is_attribute_found = true;
-							}
-						}
-					}
+				bool is_attribute_found = ! class_info.methods
+					.filter!(m => m.name == method)
+					.filter!(m => m.attributes.canFind("Method"))
+					.empty;
 
-					// found but missing attribute
-					if (is_method_found && ! is_attribute_found) {
-						errors ~= `Signal method "%s" found in class "%s" but missing @Method attribute`.format(method, class_name);
-					// not found
-					} else if (! is_method_found) {
-						errors ~= `Signal method "%s" not found in class "%s"`.format(method, class_name);
-					}
+				// found but missing attribute
+				if (is_method_found && ! is_attribute_found) {
+					errors ~= `Signal method "%s" found in class "%s" but missing @Method attribute`.format(method, class_name);
+				// not found
+				} else if (! is_method_found) {
+					errors ~= `Signal method "%s" not found in class "%s"`.format(method, class_name);
 				}
 			}
 		}
