@@ -29,7 +29,7 @@ string[][string] verifyProject(string project_path, Project project, KlassInfo[]
 	}
 
 	// Check scenes
-	foreach (scene ; project._scenes.values.sortBy!(Scene, "_path")) {
+	foreach (scene ; project._scenes.values.sortBy!("_path")) {
 		if (scene._error) continue;
 		string[] errors;
 		errors ~= new VerifySceneVisitorResource().visit(scene, project_path, project, class_infos);
@@ -39,7 +39,7 @@ string[][string] verifyProject(string project_path, Project project, KlassInfo[]
 	}
 
 	// Check scripts
-	foreach (script ; project._scripts.values.sortBy!(NativeScript, "_path")) {
+	foreach (script ; project._scripts.values.sortBy!("_path")) {
 		if (script._error) continue;
 		string[] errors;
 		errors ~= new VerifyScriptVisitorNativeLibrary().visit(script, project_path, project, class_infos);
@@ -49,7 +49,7 @@ string[][string] verifyProject(string project_path, Project project, KlassInfo[]
 	}
 
 	// Check libraries
-	foreach (library ; project._libraries.values.sortBy!(NativeLibrary, "_path")) {
+	foreach (library ; project._libraries.values.sortBy!("_path")) {
 		if (library._error) continue;
 		string[] errors;
 		errors ~= new VerifyLibraryVisitorSymbolPrefix().visit(library, project_path, project, class_infos);
@@ -253,7 +253,7 @@ class VerifySceneVisitorSignalMethodInCode : VerifySceneVisitor {
 			// Get all the resources with the script id
 			int id = ids.front;
 			auto resources = scene._resources
-				.sortBy!(HeadingExtResource, "_path")
+				.sortBy!("_path")
 				.filter!(r => r._id == id)
 				.filter!(r => r._type == "Script")
 				.filter!(r => r._path.extension == ".gdns");
@@ -279,7 +279,7 @@ class VerifySceneVisitorSignalMethodInCode : VerifySceneVisitor {
 
 		// Get the classes with the same names
 		auto classes = class_infos
-			.sortBy!(KlassInfo, "class_name")
+			.sortBy!("class_name")
 			.filter!(c => c.full_class_name == class_name);
 		if (classes.empty) return errors;
 

@@ -74,7 +74,7 @@ string toPosixPath(string path) {
 	return path;
 }
 
-auto sortBy(T, string field_name)(T[] things) {
+auto sortBy(string field_name, T)(T things) {
 	import std.algorithm : sort;
 	import std.string : format;
 
