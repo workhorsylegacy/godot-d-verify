@@ -78,15 +78,20 @@ string getCodeAstXML(string full_file_name) {
 
 KlassInfo[] getCodeClasses(string path_to_src) {
 	import std.string : endsWith, split;
-	import std.algorithm : filter;
+	import std.algorithm : filter, map;
+	import std.array : replace;
+	import std.path : extension;
 	import helpers : baseName, dirEntries, SpanMode;
 	import read_xml : Node, readNodes, getNode, getNodes, getNodeText;
 
 	KlassInfo[] retval;
 
-
 	// Get all the D files in the src directory
-	auto file_names = dirEntries(path_to_src, SpanMode.shallow, false).filter!(f => f.name.endsWith(".d"));
+	auto file_names =
+		dirEntries(path_to_src, SpanMode.breadth, false)
+		.filter!(e => e.isFile)
+		.filter!(e => e.name.extension == ".d")
+		.map!(e => e.name.replace(`\`, `/`));
 
 	foreach (full_file_name ; file_names) {
 		//stdout.writefln("######### full_file_name: %s", full_file_name); stdout.flush();

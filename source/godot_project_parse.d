@@ -29,7 +29,7 @@ Project parseProject(string full_project_path) {
 	// Get the paths of all the files to scan
 	immutable string[] extensions = [".gdns", ".tscn", ".gdnlib", ".gd"];
 	string[] files_to_scan = "project.godot" ~
-			dirEntries(project_dir, SpanMode.depth)
+			dirEntries(project_dir, SpanMode.breadth)
 			.filter!(e => extensions.canFind(e.name.extension))
 			.filter!(e => e.isFile)
 			.map!(e => e.name.replace(`\`, `/`))
