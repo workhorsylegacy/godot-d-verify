@@ -215,14 +215,17 @@ class VerifySceneVisitorResource : VerifySceneVisitor {
 	override string[] visit(Scene scene, string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
 		import std.file : exists;
+		import std.algorithm : filter, sort;
 		import helpers : sortBy;
 		string[] errors;
 
 		// Make sure the resource files exists
-		foreach (resource ; scene._resources.sortBy!(HeadingExtResource, "_path")) {
-			if (! exists(project_path ~ resource._path)) {
-				errors ~= `Scene resource file not found: "%s"`.format(resource._path);
-			}
+		auto resources = scene._resources
+			.sort!((a, b) => a._path < b._path)
+			.filter!(r => ! exists(project_path ~ r._path));
+
+		foreach (resource ; resources) {
+			errors ~= `Scene resource file not found: "%s"`.format(resource._path);
 		}
 
 		return errors;
@@ -312,7 +315,6 @@ class VerifySceneVisitorSceneTypeClassTypeMismatch : VerifySceneVisitor {
 		import std.file : exists;
 		import std.path : extension;
 		import std.algorithm : filter;
-		import std.array : array;
 		import helpers : sortBy;
 		string[] errors;
 
@@ -322,15 +324,14 @@ class VerifySceneVisitorSceneTypeClassTypeMismatch : VerifySceneVisitor {
 			auto resources = scene._resources
 				.filter!(r => r._id == node._script.id)
 				.filter!(r => r._path.extension == ".gdns")
-				.filter!(r => r._path in project._scripts)
-				.array;
+				.filter!(r => r._path in project._scripts);
 
 			// Make sure the node is referencing an existing resource
-			if (resources.length == 0) {
+			if (resources.empty) {
 				//errors ~= `Node script resource %s was not found`.format(node._script.id);
 				continue;
 			}
-			auto resource = resources[0];
+			auto resource = resources.front;
 
 			auto script = project._scripts[resource._path];
 			string class_name = script._class_name;
@@ -338,9 +339,8 @@ class VerifySceneVisitorSceneTypeClassTypeMismatch : VerifySceneVisitor {
 			// Find all the classes with same type
 			auto classes = class_infos
 				.filter!(c => c.base_class_name == "GodotScript")
-				.filter!(c => c.full_class_name == class_name)
+				.filter!(c => c.full_class_name == class_name);
 				//.filter!(c => c.base_class_template == node._type)
-				.array;
 
 			foreach (class_info ; classes) {
 				if (class_info.base_class_template != node._type) {
@@ -389,17 +389,15 @@ class VerifyScriptVisitorClassName : VerifyScriptVisitor {
 class VerifyScriptVisitorScriptClassInCode : VerifyScriptVisitor {
 	override string[] visit(NativeScript script, string project_path, Project project, KlassInfo[] class_infos) {
 		import std.string : format;
+		import std.algorithm : filter;
 		import helpers : sortBy;
 		string[] errors;
 
 		// Make sure the script class is in the D code
 		if (script._class_name) {
-			bool has_class = false;
-			foreach (class_info ; class_infos.sortBy!(KlassInfo, "class_name")) {
-				if (script._class_name == "%s.%s".format(class_info._module, class_info.class_name)) {
-					has_class = true;
-				}
-			}
+			bool has_class = ! class_infos
+				.filter!(c => c.full_class_name == script._class_name)
+				.empty;
 
 			if (! has_class) {
 				errors ~= `Script missing class "%s"`.format(script._class_name);
