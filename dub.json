@@ -16,8 +16,9 @@
 			"targetType": "executable",
 			"targetName": "godot-d-verify",
 			"dependencies": {
-				"dxml": "~>0.4.3",
-				"libdparse": "~>0.17.0"
+				"dxml": { "path": "../third_party/dxml-0.4.3" },
+				"libdparse": { "path": "../third_party/libdparse-0.17.0" },
+				"stdx-allocator": { "path": "../third_party/stdx-allocator-2.77.5" },
 			}
 		},
 		{
@@ -27,9 +28,10 @@
 			"targetName": "godot-d-verify-test",
 			"excludedSourceFiles": ["source/main.d"],
 			"dependencies": {
-				"bdd": "~>3.1.0",
-				"dxml": "~>0.4.3",
-				"libdparse": "~>0.17.0"
+				"bdd": { "path": "../third_party/BDD-3.1.0" },
+				"dxml": { "path": "../third_party/dxml-0.4.3" },
+				"libdparse": { "path": "../third_party/libdparse-0.17.0" },
+				"stdx-allocator": { "path": "../third_party/stdx-allocator-2.77.5" },
 			}
 		}
 	]
