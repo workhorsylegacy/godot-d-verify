@@ -17,8 +17,9 @@
 			"targetName": "godot-d-verify",
 			"dependencies": {
 				"dxml": { "path": "../third_party/dxml-0.4.3" },
-				"libdparse": { "path": "../third_party/libdparse-0.17.0" },
-				"stdx-allocator": { "path": "../third_party/stdx-allocator-2.77.5" },
+				"libdparse": { "path": "../third_party/libdparse-0.20.0" },
+				"mir-core": { "path": "../third_party/mir-core-0.3.0" },
+				"stdx-allocator": { "path": "../third_party/stdx-allocator-3.0.2" }
 			}
 		},
 		{
@@ -30,8 +31,9 @@
 			"dependencies": {
 				"bdd": { "path": "../third_party/BDD-3.1.0" },
 				"dxml": { "path": "../third_party/dxml-0.4.3" },
-				"libdparse": { "path": "../third_party/libdparse-0.17.0" },
-				"stdx-allocator": { "path": "../third_party/stdx-allocator-2.77.5" },
+				"libdparse": { "path": "../third_party/libdparse-0.20.0" },
+				"mir-core": { "path": "../third_party/mir-core-0.3.0" },
+				"stdx-allocator": { "path": "../third_party/stdx-allocator-3.0.2" }
 			}
 		}
 	]
