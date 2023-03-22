@@ -37,12 +37,12 @@ int main(string[] args) {
 
 	// If there was an error, print the help and quit
 	if (is_help) {
-		stderr.writefln(
+		stdout.writefln(
 		"Verify Godot 3 projects that use the D Programming Language\n" ~
 		"--project               Directory containing Godot project. Required:\n" ~
 		"--source                Directory containing D source code. Required:\n" ~
 		"--generate_script_list  Will generate a list of classes that are GodotScript. Optional:\n" ~
-		"--help                  This help information.\n"); stderr.flush();
+		"--help                  This help information.\n"); stdout.flush();
 
 		if (getopt_error) {
 			stderr.writefln("Error: %s", getopt_error); stderr.flush();
@@ -74,14 +74,14 @@ int main(string[] args) {
 	auto project_errors = verifyProject(project_path, project, class_infos);
 	int error_count;
 	foreach (name, errors ; project_errors) {
-		stderr.writeln(name);
+		stdout.writeln(name);
 		foreach (error ; errors) {
 			error_count++;
-			stderr.writeln("    ", error);
+			stdout.writeln("    ", error);
 		}
 	}
 	if (error_count > 0) {
-		stderr.writefln(`Verification failed! Found %s error(s)!`, error_count); stderr.flush();
+		stdout.writefln(`Verification failed! Found %s error(s)!`, error_count); stdout.flush();
 		return 1;
 	}
 
