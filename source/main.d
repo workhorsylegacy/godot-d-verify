@@ -38,7 +38,7 @@ int main(string[] args) {
 	// If there was an error, print the help and quit
 	if (is_help) {
 		stderr.writefln(
-		"Verify Godot D Project\n" ~
+		"Verify Godot 3 projects that use the D Programming Language\n" ~
 		"--project               Directory containing Godot project. Required:\n" ~
 		"--source                Directory containing D source code. Required:\n" ~
 		"--generate_script_list  Will generate a list of classes that are GodotScript. Optional:\n" ~
