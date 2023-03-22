@@ -39,7 +39,7 @@ int main(string[] args) {
 	if (is_help) {
 		stdout.writefln(
 		"Verify Godot 3 Dlang project\n" ~
-		"--project               Directory containing Godot project. Required:\n" ~
+		"--project               Directory containing Godot project file. Required:\n" ~
 		"--source                Directory containing D source code. Required:\n" ~
 		"--generate_script_list  Will generate a list of classes that are GodotScript. Optional:\n" ~
 		"--help                  This help information.\n"); stdout.flush();
@@ -90,8 +90,9 @@ int main(string[] args) {
 	// Generate a list of classes that are GodotScript
 	if (generate_script_list) {
 		string file_name = "generated_script_list.d";
-		stdout.writefln(`Generating "%s"`, source_path ~ file_name); stdout.flush();
-		File file = File(source_path ~ file_name, "w");
+		string script_list_file = buildPath(source_path, file_name);
+		stdout.writefln(`Generating script list file: %s`, script_list_file); stdout.flush();
+		File file = File(script_list_file, "w");
 		scope (exit) file.close();
 
 		file.writefln("\n\nenum string[string] script_list = [");
