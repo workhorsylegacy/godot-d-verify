@@ -1,6 +1,6 @@
 {
 	"name": "godot-d-verify",
-	"description": "Verify a D Godot project",
+	"description": "Verify Godot 3 projects that use D",
 	"authors": [
 		"Matthew Brennan Jones <matthew.brennan.jones@gmail.com>"
 	],
