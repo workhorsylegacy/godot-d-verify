@@ -66,7 +66,7 @@ int main(string[] args) {
 	source_path = absolutePath(source_path);
 
 	// Get the project info
-	stdout.writefln(`Verifying Godot D Project at "%s"`, project_path); stdout.flush();
+	stdout.writefln(`Verifying Godot 3 D Project at "%s"`, project_path); stdout.flush();
 	auto project = parseProject(buildPath(project_path, `project.godot`));
 	auto class_infos = getCodeClasses(source_path);
 
