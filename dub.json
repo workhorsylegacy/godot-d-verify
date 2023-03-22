@@ -16,10 +16,10 @@
 			"targetType": "executable",
 			"targetName": "godot-d-verify",
 			"dependencies": {
-				"dxml": { "path": "../third_party/dxml-0.4.3" },
-				"libdparse": { "path": "../third_party/libdparse-0.20.0" },
-				"mir-core": { "path": "../third_party/mir-core-0.3.0" },
-				"stdx-allocator": { "path": "../third_party/stdx-allocator-3.0.2" }
+				"dxml": "~>0.4.3",
+				"libdparse": "~>0.20.0",
+				"mir-core": "~>0.2.2",
+				"stdx-allocator": "~>3.0.2"
 			}
 		},
 		{
@@ -29,11 +29,11 @@
 			"targetName": "godot-d-verify-test",
 			"excludedSourceFiles": ["source/main.d"],
 			"dependencies": {
-				"bdd": { "path": "../third_party/BDD-3.1.0" },
-				"dxml": { "path": "../third_party/dxml-0.4.3" },
-				"libdparse": { "path": "../third_party/libdparse-0.20.0" },
-				"mir-core": { "path": "../third_party/mir-core-0.3.0" },
-				"stdx-allocator": { "path": "../third_party/stdx-allocator-3.0.2" }
+				"bdd": "~>3.1.0",
+				"dxml": "~>0.4.3",
+				"libdparse": "~>0.20.0",
+				"mir-core": "~>0.2.2",
+				"stdx-allocator": "~>3.0.2"
 			}
 		}
 	]
