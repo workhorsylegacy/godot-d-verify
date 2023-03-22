@@ -1,16 +1,21 @@
 # Godot D Verify
-Verify a D Godot project
+Verify Godot 3 projects that use the D Programming Language
 
 
 # Run unit tests
 
 ```
-dub test --compiler=ldc2
+dub test
 ```
 
 # Build
 
 ```
-dub build --compiler=ldc2 --build=debug
-godot-d-verify.exe --project game/project/ --source game/src/
+dub build
+```
+
+# Run
+
+```
+godot-d-verify --project game/project/ --source game/src/
 ```
