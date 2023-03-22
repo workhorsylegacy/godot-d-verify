@@ -72,13 +72,16 @@ int main(string[] args) {
 
 	// Find and print any errors
 	auto project_errors = verifyProject(project_path, project, class_infos);
+	int error_count;
 	foreach (name, errors ; project_errors) {
 		stderr.writeln(name);
 		foreach (error ; errors) {
+			error_count++;
 			stderr.writeln("    ", error);
 		}
 	}
-	if (project_errors.length > 0) {
+	if (error_count > 0) {
+		stderr.writefln(`Verification failed! Found %s error(s)!`, error_count); stderr.flush();
 		return 1;
 	}
 
@@ -96,5 +99,6 @@ int main(string[] args) {
 		file.writefln("];\n");
 	}
 
+	stdout.writefln(`All verification checks were successful.`); stdout.flush();
 	return 0;
 }
