@@ -12,7 +12,7 @@ int main(string[] args) {
 	import std.getopt : getopt, config, GetOptException;
 	import helpers : dirName, buildPath, toPosixPath, absolutePath;
 	import godot_project_parse : parseProject;
-	import scan_d_code : getCodeClasses;
+	import scan_d_code : getGodotScriptClasses;
 	import godot_project_verify : verifyProject;
 
 	// Change the dir to the location of the current exe
@@ -70,7 +70,7 @@ int main(string[] args) {
 	stdout.writefln(`Project file path: %s`, project_path); stdout.flush();
 	stdout.writefln(`Dlang source path: %s`, source_path); stdout.flush();
 	auto project = parseProject(buildPath(project_path, `project.godot`));
-	auto class_infos = getCodeClasses(source_path);
+	auto class_infos = getGodotScriptClasses(source_path);
 
 	// Find and print any errors
 	auto project_errors = verifyProject(project_path, project, class_infos);

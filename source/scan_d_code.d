@@ -76,7 +76,7 @@ string getCodeAstXML(string full_file_name) {
 	return retval;
 }
 
-KlassInfo[] getCodeClasses(string path_to_src) {
+KlassInfo[] getGodotScriptClasses(string path_to_src) {
 	import std.string : endsWith, split;
 	import std.algorithm : filter, map;
 	import std.array : replace;
@@ -146,7 +146,7 @@ KlassInfo[] getCodeClasses(string path_to_src) {
 				}
 			}
 
-			if (info.isValid()) {
+			if (info.isValid() && info.base_class_name == "GodotScript") {
 				retval ~= info;
 			}
 		}
