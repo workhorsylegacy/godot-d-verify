@@ -9,6 +9,8 @@
 	"license": "MIT",
 	"importPaths": ["source/"],
 
+	"dflags": ["-preview=dip1008", "-preview=dip1000"],
+
 	"configurations": [
 		{
 			"name": "default",
