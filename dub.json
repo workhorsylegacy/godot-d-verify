@@ -9,7 +9,7 @@
 	"license": "MIT",
 	"importPaths": ["source/"],
 
-	"dflags": ["-preview=dip1008", "-preview=dip1000"],
+	"dflags": ["-preview=dip1000"],
 
 	"configurations": [
 		{
