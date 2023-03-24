@@ -6,6 +6,8 @@
 module scan_d_code;
 
 import std.stdio : stdout;
+import std.experimental.lexer : TokenStructure;
+import dparse.ast : ASTVisitor, ModuleDeclaration, ClassDeclaration, FunctionDeclaration, TemplateSingleArgument;
 
 class MethodInfo {
 	string name = null;
@@ -38,7 +40,6 @@ class KlassInfo {
 	}
 }
 
-import dparse.ast;
 private class KlassInfoVisitor : ASTVisitor {
 	alias visit = ASTVisitor.visit;
 
@@ -53,7 +54,7 @@ private class KlassInfoVisitor : ASTVisitor {
 
 	override void visit(in FunctionDeclaration f) {
 		if (_current_klass_info !is null) {
-			stdout.writefln("!!    class:%s, FunctionDeclaration: %s", _current_klass_info.class_name, f.name.text.dup); stdout.flush();
+			stdout.writefln("!!    FunctionDeclaration: %s", f.name.text.dup); stdout.flush();
 
 			auto method = new MethodInfo();
 			method.name = f.name.text.dup;
@@ -83,37 +84,50 @@ private class KlassInfoVisitor : ASTVisitor {
 	}
 
 	override void visit(in ClassDeclaration c) {
-		import std.string : endsWith, split;
+		import std.string : split;
 
 		// Get module and class name
 		auto info = new KlassInfo();
 		info._module = _file_name.split(".")[0];
 		info.class_name = c.name.text.dup;
 		_current_klass_info = info;
-		stdout.writefln("!! class: %s", info.class_name); stdout.flush();
+		stdout.writefln("!! class_name: %s", info.class_name); stdout.flush();
 
 		// Get base class names
 		foreach (base_class ; c.baseClassList.items) {
+			auto ioti = base_class.type2.typeIdentifierPart.identifierOrTemplateInstance;
+
 			// Uses template like: class Dog : GodotScript!Area
-			string name = base_class.type2.typeIdentifierPart.identifierOrTemplateInstance.templateInstance.identifier.text;
-			stdout.writefln("!!    base_class1: %s", name); stdout.flush();
-			if (name != "") {
-				info.base_class_name = name; //FIXME: make this an array for classes with multiple inheritance
-			}
-
+			string name1 = ioti.templateInstance.identifier.text;
+			stdout.writefln("!!    base_class_name: %s", name1); stdout.flush();
+			if (name1 != "") {
+				info.base_class_name = name1; //FIXME: make base_class_name an array for classes with multiple inheritance
 			// Does not use template like: class Animal : GodotScript
-			string name2 = base_class.type2.typeIdentifierPart.identifierOrTemplateInstance.identifier.text;
-			stdout.writefln("!!    base_class2: %s", name2); stdout.flush();
-			if (name2 != "") {
-				info.base_class_name = name2; //FIXME: make this an array for classes with multiple inheritance
+			} else {
+				string name2 = ioti.identifier.text;
+				if (name2 != "") {
+					stdout.writefln("!!    base_class_name2: %s", name2); stdout.flush();
+					info.base_class_name = name2; //FIXME: make base_class_name an array for classes with multiple inheritance
+				}
 			}
 
+/*
+			// Template with multiple arguments
+			auto templ_arg_list = ioti.templateInstance.templateArguments.templateArgumentList;
+			stdout.writefln("!!    XX: %s", templ_arg_list); stdout.flush();
+			if (templ_arg_list) {
+				foreach (arg ; templ_arg_list.items) {
+					stdout.writefln("XXXXXXX        arg: %s", arg); stdout.flush();
+				}
+			}
+*/
 			// Get base class template name
 			// class Dog : GodotScript!Spatial
-			string name3 = "FIXME";//base_class.type2.typeIdentifierPart.identifierOrTemplateInstance.templateInstance.templateArguments.templateSingleArgument.identifier.text;
-			stdout.writefln("!!    base_class3: %s", name3); stdout.flush();
-			if (name3 != "") {
-				info.base_class_template = name3;
+			// Template with one argument
+			auto templ_arg_single = ioti.templateInstance.templateArguments.templateSingleArgument;
+			foreach (token ; templ_arg_single.tokens) {
+				stdout.writefln("!!    base_class_template: %s", token.text); stdout.flush();
+				info.base_class_template = token.text;
 			}
 		}
 
