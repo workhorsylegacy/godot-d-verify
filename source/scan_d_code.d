@@ -144,7 +144,7 @@ private class KlassInfoVisitor : ASTVisitor {
 			auto templ_arg_single = ioti.templateInstance.templateArguments.templateSingleArgument;
 			foreach (token ; templ_arg_single.tokens) {
 //				stdout.writefln("!!    base_class_template: %s", token.text); stdout.flush();
-				info.base_class_template = token.text;
+				info.base_class_template = token.text.dup;
 			}
 		}
 
