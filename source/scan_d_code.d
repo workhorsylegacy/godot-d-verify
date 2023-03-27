@@ -6,6 +6,8 @@
 module scan_d_code;
 
 import std.stdio : stdout;
+import std.experimental.lexer : TokenStructure;
+import dparse.ast : ASTVisitor, ModuleDeclaration, ClassDeclaration, FunctionDeclaration, TemplateSingleArgument, Declaration;
 
 class MethodInfo {
 	string name = null;
@@ -38,51 +40,132 @@ class KlassInfo {
 	}
 }
 
-string getCodeAstXML(string full_file_name) {
-	import std.file : read, exists, remove;
-	import std.stdio : File;
-	import create_temp_file : createTempFile;
-	import dparse.lexer : LexerConfig, StringCache, getTokensForParser;
-	import dparse.parser : parseModule;
-	import dparse.rollback_allocator : RollbackAllocator;
-	import dparse.astprinter : XMLPrinter;
-	import helpers : baseName;
+private class KlassInfoVisitor : ASTVisitor {
+	alias visit = ASTVisitor.visit;
 
-	// Generate a temporary file that gets auto deleted
-	auto file_name = baseName(full_file_name);
-	string temp_file = createTempFile(file_name, ".xml");
-	scope(exit) if (exists(temp_file)) remove(temp_file);
+	string _file_name;
+	KlassInfo[] _klass_infos;
+	KlassInfo _current_klass_info = null;
+	Declaration _current_declaration = null;
 
-	// Use Lib D Parse to generate an XML AST of the D file
-	string retval;
-	{
-		LexerConfig config;
-		auto source_code = cast(string) read(full_file_name);
-		auto cache = StringCache(StringCache.defaultBucketCount);
-		auto tokens = getTokensForParser(source_code, config, &cache);
-		RollbackAllocator rba;
-		auto mod = parseModule(tokens, file_name, &rba);
-
-		auto temp = File(temp_file, "w");
-		scope(exit) temp.close();
-
-		auto visitor = new XMLPrinter();
-		visitor.output = temp;
-		visitor.visit(mod);
+	override void visit(in ModuleDeclaration m) {
+		//moduleName = m.moduleName.identifiers.map!(t => cast(string) t.text).array;
+		super.visit(m);
 	}
 
-	retval = cast(string) read(temp_file);
+	override void visit(in Declaration d) {
+		_current_declaration = cast(Declaration) d;
+		super.visit(d);
+		_current_declaration = null;
+	}
 
-	return retval;
+	override void visit(in FunctionDeclaration f) {
+		if (_current_klass_info !is null) {
+//			stdout.writefln("!!    FunctionDeclaration: %s", f.name.text.dup); stdout.flush();
+
+			auto method = new MethodInfo();
+			method.name = f.name.text.dup;
+
+			// @Method void blah() in FunctionDeclaration attributes
+			foreach (attribute ; f.attributes) {
+//				stdout.writefln("???????        attribute1:%s", attribute); stdout.flush();
+				if (auto text = attribute.atAttribute.identifier.text) {
+					method.attributes ~= text.dup;
+//					stdout.writefln("!!        attribute:%s", text.dup); stdout.flush();
+				}
+			}
+
+			// @Method void blah() in Declaration attributes
+			if (_current_declaration) {
+				foreach (attribute ; _current_declaration.attributes) {
+					if (auto text = attribute.atAttribute.identifier.text) {
+						method.attributes ~= text.dup;
+//						stdout.writefln("!!        attribute2:%s", text.dup); stdout.flush();
+					}
+				}
+			}
+
+			// @Method blah() in FunctionDeclaration StorageClasses
+			foreach (storage_class ; f.storageClasses) {
+//				stdout.writefln("???????        storage_class:%s", storage_class); stdout.flush();
+				if (storage_class && storage_class.atAttribute) {
+					if (auto text = storage_class.atAttribute.identifier.text) {
+						method.attributes ~= text.dup;
+//						stdout.writefln("!!        atAttribute3:%s", text.dup); stdout.flush();
+					}
+				}
+			}
+
+			if (method.isValid()) {
+				_current_klass_info.methods ~= method;
+			}
+		}
+
+		super.visit(f);
+	}
+
+	override void visit(in ClassDeclaration c) {
+		import std.string : split;
+
+		// Get module and class name
+		auto info = new KlassInfo();
+		info._module = _file_name.split(".")[0];
+		info.class_name = c.name.text.dup;
+		_current_klass_info = info;
+//		stdout.writefln("!! class_name: %s", info.class_name); stdout.flush();
+
+		// Get base class names
+		foreach (base_class ; c.baseClassList.items) {
+			auto ioti = base_class.type2.typeIdentifierPart.identifierOrTemplateInstance;
+
+			// Uses template like: class Dog : GodotScript!Area
+			if (auto text = ioti.templateInstance.identifier.text) {
+				//stdout.writefln("!!    base_class_name: %s", text); stdout.flush();
+				info.base_class_name = text.dup; //FIXME: make base_class_name an array for classes with multiple inheritance
+			// Does not use template like: class Animal : GodotScript
+			} else if (auto text = ioti.identifier.text) {
+//				stdout.writefln("!!    base_class_name2: %s", text); stdout.flush();
+				info.base_class_name = text.dup; //FIXME: make base_class_name an array for classes with multiple inheritance
+			}
+
+/*
+			// Template with multiple arguments
+			auto templ_arg_list = ioti.templateInstance.templateArguments.templateArgumentList;
+			stdout.writefln("!!    XX: %s", templ_arg_list); stdout.flush();
+			if (templ_arg_list) {
+				foreach (arg ; templ_arg_list.items) {
+					stdout.writefln("XXXXXXX        arg: %s", arg); stdout.flush();
+				}
+			}
+*/
+			// Get base class template name
+			// class Dog : GodotScript!Spatial
+			// Template with one argument
+			auto templ_arg_single = ioti.templateInstance.templateArguments.templateSingleArgument;
+			foreach (token ; templ_arg_single.tokens) {
+//				stdout.writefln("!!    base_class_template: %s", token.text); stdout.flush();
+				info.base_class_template = token.text.dup;
+			}
+		}
+
+		if (info.isValid()) {
+			_klass_infos ~= info;
+		}
+
+		super.visit(c);
+		_current_klass_info = null;
+	}
 }
 
 KlassInfo[] getGodotScriptClasses(string path_to_src) {
-	import std.string : endsWith, split;
 	import std.algorithm : filter, map;
 	import std.array : replace;
 	import std.path : extension;
 	import helpers : baseName, dirEntries, SpanMode;
-	import read_xml : Node, readNodes, getNode, getNodes, getNodeText;
+	import std.file : read;
+	import dparse.lexer : LexerConfig, StringCache, getTokensForParser;
+	import dparse.parser : parseModule;
+	import dparse.rollback_allocator : RollbackAllocator;
 
 	KlassInfo[] retval;
 
@@ -95,58 +178,21 @@ KlassInfo[] getGodotScriptClasses(string path_to_src) {
 
 	foreach (full_file_name ; file_names) {
 		//stdout.writefln("######### full_file_name: %s", full_file_name); stdout.flush();
-
 		auto file_name = baseName(full_file_name);
-		string xml_ast = getCodeAstXML(full_file_name);
 
-		// Get all the classes and methods from the XML AST
-		Node root_node = readNodes(xml_ast);
-		foreach (Node klass ; root_node.getNodes("/module/declaration/classDeclaration/")) {
-			// Get module and class name
-			auto info = new KlassInfo();
-			info._module = file_name.split(".")[0];
-			info.class_name = klass.getNode("classDeclaration/name/").getNodeText();
+		LexerConfig config;
+		auto source_code = cast(string) read(full_file_name);
+		auto cache = StringCache(StringCache.defaultBucketCount);
+		auto tokens = getTokensForParser(source_code, config, &cache);
+		RollbackAllocator rba;
+		auto mod = parseModule(tokens, file_name, &rba);
 
-			// Get base class name
-			// class Dog : GodotScript!Area
-			if (auto text = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/identifier/").getNodeText()) {
-				info.base_class_name = text;
-			// class Animal : GodotScript
-			} else if (auto text = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/identifier/").getNodeText()) {
-				info.base_class_name = text;
-			}
-
-			// Get base class template name
-			// class Dog : GodotScript!Spatial
-			if (auto text = klass.getNode("classDeclaration/baseClassList/baseClass/type2/typeIdentifierPart/identifierOrTemplateInstance/templateInstance/templateArguments/templateSingleArgument/identifier/").getNodeText()) {
-				info.base_class_template = text;
-			}
-
-			// Get methods
-			foreach (Node method_node ; klass.getNodes("classDeclaration/structBody/declaration/functionDeclaration/")) {
-				auto method = new MethodInfo();
-				method.name = method_node.getNode("functionDeclaration/name/").getNodeText();
-
-				// @Method void blah()
-				foreach (Node attribute ; method_node.parent_node.getNodes("declaration/attribute/atAttribute/identifier/")) {
-					if (auto text = attribute.getNodeText()) {
-						method.attributes ~= text;
-					}
-				}
-
-				// @Method blah()
-				foreach (Node attribute ; method_node.parent_node.getNodes("declaration/functionDeclaration/storageClass/atAttribute/identifier/")) {
-					if (auto text = attribute.getNodeText()) {
-						method.attributes ~= text;
-					}
-				}
-
-				if (method.isValid()) {
-					info.methods ~= method;
-				}
-			}
-
-			if (info.isValid() && info.base_class_name == "GodotScript") {
+		auto visitor = new KlassInfoVisitor();
+		visitor._file_name = file_name;
+		visitor.visit(mod);
+		foreach (info ; visitor._klass_infos) {
+//			stdout.writefln("!!    base_class: %s", info.class_name); stdout.flush();
+			if (info.base_class_name == "GodotScript") {
 				retval ~= info;
 			}
 		}
