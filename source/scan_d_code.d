@@ -119,17 +119,13 @@ private class KlassInfoVisitor : ASTVisitor {
 			auto ioti = base_class.type2.typeIdentifierPart.identifierOrTemplateInstance;
 
 			// Uses template like: class Dog : GodotScript!Area
-			string name1 = ioti.templateInstance.identifier.text;
-//			stdout.writefln("!!    base_class_name: %s", name1); stdout.flush();
-			if (name1 != "") {
-				info.base_class_name = name1; //FIXME: make base_class_name an array for classes with multiple inheritance
+			if (auto text = ioti.templateInstance.identifier.text) {
+				//stdout.writefln("!!    base_class_name: %s", text); stdout.flush();
+				info.base_class_name = text.dup; //FIXME: make base_class_name an array for classes with multiple inheritance
 			// Does not use template like: class Animal : GodotScript
-			} else {
-				string name2 = ioti.identifier.text;
-				if (name2 != "") {
-//					stdout.writefln("!!    base_class_name2: %s", name2); stdout.flush();
-					info.base_class_name = name2; //FIXME: make base_class_name an array for classes with multiple inheritance
-				}
+			} else if (auto text = ioti.identifier.text) {
+//				stdout.writefln("!!    base_class_name2: %s", text); stdout.flush();
+				info.base_class_name = text.dup; //FIXME: make base_class_name an array for classes with multiple inheritance
 			}
 
 /*
