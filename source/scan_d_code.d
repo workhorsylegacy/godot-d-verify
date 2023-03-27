@@ -182,7 +182,6 @@ KlassInfo[] getGodotScriptClasses(string path_to_src) {
 
 	foreach (full_file_name ; file_names) {
 		//stdout.writefln("######### full_file_name: %s", full_file_name); stdout.flush();
-		// Generate a temporary file that gets auto deleted
 		auto file_name = baseName(full_file_name);
 
 		LexerConfig config;
