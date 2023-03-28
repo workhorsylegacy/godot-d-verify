@@ -9,7 +9,36 @@ module godot_project_parse;
 import std.stdio : stdout;
 import godot_project;
 
+void getProjectFiles(string full_project_path, void delegate(string full_file_path) cb) {
+	import std.path : extension;
+	import std.array : replace, array;
+	import std.algorithm : canFind;
+	import std.string : chompPrefix, stripLeft;
+	import helpers : getcwd, chdir, baseName, dirName, dirEntries, SpanMode;
 
+	string prev_dir = getcwd();
+	scope (exit) chdir(prev_dir);
+
+	// Get the directory path
+	string project_file = baseName(full_project_path);
+	string project_dir = dirName(full_project_path);
+	chdir(project_dir);
+
+	// Get the paths of all the files to scan
+	immutable string[] extensions = [".gdns", ".tscn", ".gdnlib", ".gd"];
+	auto entries = dirEntries(project_dir, SpanMode.breadth);
+
+	cb("project.godot");
+	foreach (e ; entries) {
+		if (! e.isFile || ! extensions.canFind(e.name.extension)) continue;
+
+		auto f = e.name
+			.replace(`\`, `/`)
+			.chompPrefix(project_dir)
+			.stripLeft(`/`);
+		cb(f);
+	}
+}
 
 Project parseProject(string full_project_path) {
 	import std.path : extension;

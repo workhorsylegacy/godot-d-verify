@@ -12,6 +12,22 @@ public import std.file : DirIterator;
 
 string _root_path = null;
 
+public import core.stdc.stdint :
+	u64 = uint64_t,
+	u32 = uint32_t,
+	u16 = uint16_t,
+	u8  = uint8_t,
+	s64 = int64_t,
+	s32 = int32_t,
+	s16 = int16_t,
+	s8  = int8_t;
+
+s64 GetCpuTicksNS() {
+	import core.time : MonoTime, ticksToNSecs;
+
+	return ticksToNSecs(MonoTime.currTime.ticks);
+}
+
 void reset_path(string project_path) {
 	import std.file : chdir;
 	import helpers : getcwd, buildPath;

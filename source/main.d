@@ -3,17 +3,27 @@
 // Verify Godot 3 projects that use the D Programming Language
 // https://github.com/workhorsy/godot-d-verify
 
+import helpers;
+import godot_project;
+import godot_project_parse;
+
+import std.stdio : stdout, stderr, File;
+import core.thread.osthread : Thread;
+import core.time : dur;
 
 
 int main(string[] args) {
-	import std.stdio : stdout, stderr, File;
 	import std.file : chdir;
 	import std.file : exists;
+	import std.path : extension;
 	import std.getopt : getopt, config, GetOptException;
 	import helpers : dirName, buildPath, toPosixPath, absolutePath;
-	import godot_project_parse : parseProject;
 	import scan_d_code : getGodotScriptClasses;
 	import godot_project_verify : verifyProject;
+	import std.parallelism;
+
+	s64 start, end;
+	start = GetCpuTicksNS();
 
 	// Change the dir to the location of the current exe
 	chdir(dirName(args[0]));
@@ -69,10 +79,98 @@ int main(string[] args) {
 	stdout.writefln(`Verifying Godot 3 Dlang project:`); stdout.flush();
 	stdout.writefln(`Project file path: %s`, project_path); stdout.flush();
 	stdout.writefln(`Dlang source path: %s`, source_path); stdout.flush();
-	auto project = parseProject(buildPath(project_path, `project.godot`));
+	//auto project = parseProject(buildPath(project_path, `project.godot`));
+	end = GetCpuTicksNS();
+	stdout.writefln(`!!!! setup time: %s`, end - start); stdout.flush();
+
+	start = GetCpuTicksNS();
+	auto task_pool = new TaskPool(4);
+	scope(exit) task_pool.stop();
+
+	static immutable auto new_project = (string n) => new Project(n);
+	static immutable auto new_scene = (string n) => new Scene(n);
+	static immutable auto new_native_script = (string n) => new NativeScript(n);
+	static immutable auto new_gd_script = (string n) => new GDScript(n);
+	static immutable auto new_native_library = (string n) => new NativeLibrary(n);
+
+	Task!(new_project, string)*[] _projects;
+	Task!(new_scene, string)*[] _scenes;
+	Task!(new_native_script, string)*[] _native_scripts;
+	Task!(new_gd_script, string)*[] _gd_scripts;
+	Task!(new_native_library, string)*[] _native_libraries;
+
+	// Scan each file
+	getProjectFiles(project_path, (string name) {
+		//stdout.writefln(`!!!! name: %s`, name); stdout.flush();
+		switch (extension(name)) {
+			case ".godot":
+				auto t = task!(new_project)(name);
+				_projects ~= t;
+				task_pool.put(t);
+				break;
+			case ".tscn":
+				auto t = task!(new_scene)(name);
+				_scenes ~= t;
+				task_pool.put(t);
+				break;
+			case ".gdns":
+				auto t = task!(new_native_script)(name);
+				_native_scripts ~= t;
+				task_pool.put(t);
+				break;
+			case ".gd":
+				auto t = task!(new_gd_script)(name);
+				_gd_scripts ~= t;
+				task_pool.put(t);
+				break;
+			case ".gdnlib":
+				auto t = task!(new_native_library)(name);
+				_native_libraries ~= t;
+				task_pool.put(t);
+				break;
+			default:
+				break;
+		}
+	});
+
+	task_pool.finish();
+
+	Project project;
+	foreach (t ; _projects) {
+		project = t.yieldForce();
+	}
+
+	foreach (t ; _scenes) {
+		auto scene = t.yieldForce();
+		project._scenes[scene._path] = scene;
+	}
+
+	foreach (t ; _native_scripts) {
+		auto native_script = t.yieldForce();
+		project._scripts[native_script._path] = native_script;
+	}
+
+	foreach (t ; _gd_scripts) {
+		auto gd_script = t.yieldForce();
+		project._gdscripts[gd_script._path] = gd_script;
+	}
+
+	foreach (t ; _native_libraries) {
+		auto native_library = t.yieldForce();
+		project._libraries[native_library._path] = native_library;
+	}
+
+	end = GetCpuTicksNS();
+	stdout.writefln(`!!!! parse time: %s`, end - start); stdout.flush();
+	//Thread.sleep(dur!("seconds")(5));
+
+	start = GetCpuTicksNS();
 	auto class_infos = getGodotScriptClasses(source_path);
+	end = GetCpuTicksNS();
+	stdout.writefln(`!!!! get script classes time: %s`, end - start); stdout.flush();
 
 	// Find and print any errors
+	start = GetCpuTicksNS();
 	auto project_errors = verifyProject(project_path, project, class_infos);
 	int error_count;
 	foreach (name, errors ; project_errors) {
@@ -86,8 +184,11 @@ int main(string[] args) {
 		stdout.writefln(`Verification failed! Found %s error(s)!`, error_count); stdout.flush();
 		return 1;
 	}
+	end = GetCpuTicksNS();
+	stdout.writefln(`!!!! verify time: %s`, end - start); stdout.flush();
 
 	// Generate a list of classes that are GodotScript
+	start = GetCpuTicksNS();
 	if (generate_script_list) {
 		string file_name = "generated_script_list.d";
 		string script_list_file = buildPath(source_path, file_name);
@@ -101,6 +202,8 @@ int main(string[] args) {
 		}
 		file.writefln("];\n");
 	}
+	end = GetCpuTicksNS();
+	stdout.writefln(`!!!! generated_script_list time: %s`, end - start); stdout.flush();
 
 	stdout.writefln(`All verification checks were successful.`); stdout.flush();
 	return 0;
