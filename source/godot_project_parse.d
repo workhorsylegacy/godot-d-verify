@@ -4,13 +4,67 @@
 // https://github.com/workhorsy/godot-d-verify
 
 module godot_project_parse;
-
+import helpers;
 
 import std.stdio : stdout;
 import godot_project;
 
+void getProjectFiles(string full_project_path, void delegate(string full_project_path) cb) {
+	import std.path : extension;
+	import std.array : replace, array;
+	import std.algorithm : canFind;
+	import std.string : chompPrefix, stripLeft;
+	import helpers : getcwd, chdir, baseName, dirName, dirEntries, SpanMode;
 
+	string prev_dir = getcwd();
+	scope (exit) chdir(prev_dir);
 
+	// Get the directory path
+	string project_file = baseName(full_project_path);
+	string project_dir = dirName(full_project_path);
+	chdir(project_dir);
+
+	// Get the paths of all the files to scan
+	immutable string[] extensions = [".gdns", ".tscn", ".gdnlib", ".gd"];
+	auto entries = dirEntries(project_dir, SpanMode.breadth);
+
+	cb("project.godot");
+	foreach (e ; entries) {
+		if (! e.isFile || ! extensions.canFind(e.name.extension)) continue;
+
+		auto f = e.name
+			.replace(`\`, `/`)
+			.chompPrefix(project_dir)
+			.stripLeft(`/`);
+		cb(f);
+	}
+}
+/+
+void parseProjectFile(string full_name) {
+	import std.path : extension;
+
+	stdout.writefln("!! name: %s", full_name); stdout.flush();
+	switch (extension(full_name)) {
+		case ".godot":
+			/*project =*/ new Project(full_name);
+			break;
+		case ".tscn":
+			/*project._scenes[name] =*/ new Scene(full_name);
+			break;
+		case ".gdns":
+			/*project._scripts[name] =*/ new NativeScript(full_name);
+			break;
+		case ".gd":
+			/*project._gdscripts[name] =*/ new GDScript(full_name);
+			break;
+		case ".gdnlib":
+			/*project._libraries[name] =*/ new NativeLibrary(full_name);
+			break;
+		default:
+			break;
+	}
+}
++/
 Project parseProject(string full_project_path) {
 	import std.path : extension;
 	import std.array : replace, array;
@@ -27,6 +81,9 @@ Project parseProject(string full_project_path) {
 	chdir(project_dir);
 
 	// Get the paths of all the files to scan
+	import helpers;
+	s64 start, end;
+	start = GetCpuTicksNS();
 	immutable string[] extensions = [".gdns", ".tscn", ".gdnlib", ".gd"];
 	string[] files_to_scan = "project.godot" ~
 			dirEntries(project_dir, SpanMode.breadth)
@@ -36,30 +93,40 @@ Project parseProject(string full_project_path) {
 			.map!(e => e.chompPrefix(project_dir))
 			.map!(e => e.stripLeft(`/`))
 			.array;
+	end = GetCpuTicksNS();
+	stdout.writefln("!! read files: %s", end - start); stdout.flush();
 
 	// Scan each file
+	start = GetCpuTicksNS();
 	Project project;
-	foreach (name ; files_to_scan) {
+
+	stdout.writefln("!! length: %s", files_to_scan.length); stdout.flush();
+	foreach (i, ref name ; files_to_scan) {
+		stdout.writefln("!! name: %s", name); stdout.flush();
+/+
 		switch (extension(name)) {
 			case ".godot":
-				project = new Project(name);
+				/*project =*/ new Project(name);
 				break;
 			case ".tscn":
-				project._scenes[name] = new Scene(name);
+				/*project._scenes[name] =*/ new Scene(name);
 				break;
 			case ".gdns":
-				project._scripts[name] = new NativeScript(name);
+				/*project._scripts[name] =*/ new NativeScript(name);
 				break;
 			case ".gd":
-				project._gdscripts[name] = new GDScript(name);
+				/*project._gdscripts[name] =*/ new GDScript(name);
 				break;
 			case ".gdnlib":
-				project._libraries[name] = new NativeLibrary(name);
+				/*project._libraries[name] =*/ new NativeLibrary(name);
 				break;
 			default:
 				break;
 		}
++/
 	}
+	end = GetCpuTicksNS();
+	stdout.writefln("!! parse files: %s", end - start); stdout.flush();
 
 	return project;
 }
