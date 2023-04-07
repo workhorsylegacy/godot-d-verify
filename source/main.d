@@ -15,12 +15,13 @@ import core.time : dur;
 int main(string[] args) {
 	import std.file : chdir;
 	import std.file : exists;
-	import std.path : extension;
 	import std.getopt : getopt, config, GetOptException;
 	import helpers : dirName, buildPath, toPosixPath, absolutePath;
 	import scan_d_code : getGodotScriptClasses;
 	import godot_project_verify : verifyProject;
-	import std.parallelism;
+	import std.parallelism : Task, task, TaskPool, totalCPUs;
+	import std.sumtype : SumType, match;
+	import std.algorithm.comparison : clamp;
 
 	s64 start, end;
 	start = GetCpuTicksNS();
@@ -84,80 +85,57 @@ int main(string[] args) {
 	stdout.writefln(`!!!! setup time: %s`, end - start); stdout.flush();
 
 	start = GetCpuTicksNS();
-	auto task_pool = new TaskPool(4);
-	scope(exit) task_pool.stop();
 
-	static immutable auto new_project = (string n) => new Project(n);
-	static immutable auto new_scene = (string n) => new Scene(n);
-	static immutable auto new_native_script = (string n) => new NativeScript(n);
-	static immutable auto new_gd_script = (string n) => new GDScript(n);
-	static immutable auto new_native_library = (string n) => new NativeLibrary(n);
+	alias GodotFile = SumType!(Project, Scene, NativeScript, GDScript, NativeLibrary);
 
-	Task!(new_project, string)*[] _projects;
-	Task!(new_scene, string)*[] _scenes;
-	Task!(new_native_script, string)*[] _native_scripts;
-	Task!(new_gd_script, string)*[] _gd_scripts;
-	Task!(new_native_library, string)*[] _native_libraries;
+	static immutable auto parse_godot_file = function(string name) {
+		import std.string : format;
+		import std.path : extension;
 
-	// Scan each file
-	getProjectFiles(project_path, (string name) {
-		//stdout.writefln(`!!!! name: %s`, name); stdout.flush();
 		switch (extension(name)) {
 			case ".godot":
-				auto t = task!(new_project)(name);
-				_projects ~= t;
-				task_pool.put(t);
-				break;
+				return GodotFile(new Project(name));
 			case ".tscn":
-				auto t = task!(new_scene)(name);
-				_scenes ~= t;
-				task_pool.put(t);
-				break;
+				return GodotFile(new Scene(name));
 			case ".gdns":
-				auto t = task!(new_native_script)(name);
-				_native_scripts ~= t;
-				task_pool.put(t);
-				break;
+				return GodotFile(new NativeScript(name));
 			case ".gd":
-				auto t = task!(new_gd_script)(name);
-				_gd_scripts ~= t;
-				task_pool.put(t);
-				break;
+				return GodotFile(new GDScript(name));
 			case ".gdnlib":
-				auto t = task!(new_native_library)(name);
-				_native_libraries ~= t;
-				task_pool.put(t);
-				break;
+				return GodotFile(new NativeLibrary(name));
 			default:
-				break;
+				throw new Exception(`Unexpected file type: "%s"`.format(name));
 		}
+	};
+
+	// Setup task pool to use 1 to 4 threads
+	u32 cpu_count = clamp(totalCPUs, 1, 4);
+	auto task_pool = new TaskPool(cpu_count);
+	scope(exit) task_pool.stop();
+
+	// Start parsing each file in a task pool
+	Task!(parse_godot_file, string)*[] _parse_tasks;
+	getProjectFiles(project_path, (string name) {
+		//stdout.writefln(`!!!! name: %s`, name); stdout.flush();
+		auto t = task!(parse_godot_file)(name);
+		_parse_tasks ~= t;
+		task_pool.put(t);
 	});
 
+	// Complete all tasks in the pool
 	task_pool.finish();
 
+	// Copy all parsed files into project
 	Project project;
-	foreach (t ; _projects) {
-		project = t.yieldForce();
-	}
-
-	foreach (t ; _scenes) {
-		auto scene = t.yieldForce();
-		project._scenes[scene._path] = scene;
-	}
-
-	foreach (t ; _native_scripts) {
-		auto native_script = t.yieldForce();
-		project._scripts[native_script._path] = native_script;
-	}
-
-	foreach (t ; _gd_scripts) {
-		auto gd_script = t.yieldForce();
-		project._gdscripts[gd_script._path] = gd_script;
-	}
-
-	foreach (t ; _native_libraries) {
-		auto native_library = t.yieldForce();
-		project._libraries[native_library._path] = native_library;
+	foreach (t ; _parse_tasks) {
+		GodotFile godot_file = t.yieldForce();
+		godot_file.match!(
+			(Project p) { project = p; },
+			(Scene s) { project._scenes[s._path] = s; },
+			(NativeScript ns) { project._scripts[ns._path] = ns; },
+			(GDScript gs) { project._gdscripts[gs._path] = gs; },
+			(NativeLibrary nl) { project._libraries[nl._path] = nl; }
+		);
 	}
 
 	end = GetCpuTicksNS();
