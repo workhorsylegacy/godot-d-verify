@@ -6,19 +6,15 @@
 import helpers;
 import godot_project;
 import godot_project_parse;
+import godot_project_verify : verifyProject;
+import scan_d_code : getGodotScriptClasses;
 
 import std.stdio : stdout, stderr, File;
-import core.thread.osthread : Thread;
-import core.time : dur;
 
 
 int main(string[] args) {
-	import std.file : chdir;
-	import std.file : exists;
-	import std.getopt : getopt, config, GetOptException;
-	import helpers : dirName, buildPath, toPosixPath, absolutePath;
-	import scan_d_code : getGodotScriptClasses;
-	import godot_project_verify : verifyProject;
+	import std.file : chdir, exists;
+	import std.getopt : getopt, config;
 	import std.parallelism : Task, task, TaskPool, totalCPUs;
 	import std.sumtype : SumType, match;
 	import std.algorithm.comparison : clamp;
@@ -140,7 +136,6 @@ int main(string[] args) {
 
 	end = GetCpuTicksNS();
 	stdout.writefln(`!!!! parse time: %s`, end - start); stdout.flush();
-	//Thread.sleep(dur!("seconds")(5));
 
 	start = GetCpuTicksNS();
 	auto class_infos = getGodotScriptClasses(source_path);
