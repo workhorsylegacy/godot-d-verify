@@ -11,6 +11,7 @@ import scan_d_code : getGodotScriptClasses;
 
 import std.stdio : stdout, stderr, File;
 
+bool is_printing_time = false;
 
 int main(string[] args) {
 	import std.file : chdir, exists;
@@ -78,7 +79,9 @@ int main(string[] args) {
 	stdout.writefln(`Dlang source path: %s`, source_path); stdout.flush();
 	//auto project = parseProject(buildPath(project_path, `project.godot`));
 	end = GetCpuTicksNS();
-	stdout.writefln(`!!!! setup time: %s`, end - start); stdout.flush();
+	if (is_printing_time) {
+		stdout.writefln(`!!!! setup time: %s`, end - start); stdout.flush();
+	}
 
 	start = GetCpuTicksNS();
 
@@ -135,12 +138,16 @@ int main(string[] args) {
 	}
 
 	end = GetCpuTicksNS();
-	stdout.writefln(`!!!! parse time: %s`, end - start); stdout.flush();
+	if (is_printing_time) {
+		stdout.writefln(`!!!! parse time: %s`, end - start); stdout.flush();
+	}
 
 	start = GetCpuTicksNS();
 	auto class_infos = getGodotScriptClasses(source_path);
 	end = GetCpuTicksNS();
-	stdout.writefln(`!!!! get script classes time: %s`, end - start); stdout.flush();
+	if (is_printing_time) {
+		stdout.writefln(`!!!! get script classes time: %s`, end - start); stdout.flush();
+	}
 
 	// Find and print any errors
 	start = GetCpuTicksNS();
@@ -158,7 +165,9 @@ int main(string[] args) {
 		return 1;
 	}
 	end = GetCpuTicksNS();
-	stdout.writefln(`!!!! verify time: %s`, end - start); stdout.flush();
+	if (is_printing_time) {
+		stdout.writefln(`!!!! verify time: %s`, end - start); stdout.flush();
+	}
 
 	// Generate a list of classes that are GodotScript
 	start = GetCpuTicksNS();
@@ -176,7 +185,9 @@ int main(string[] args) {
 		file.writefln("];\n");
 	}
 	end = GetCpuTicksNS();
-	stdout.writefln(`!!!! generated_script_list time: %s`, end - start); stdout.flush();
+	if (is_printing_time) {
+		stdout.writefln(`!!!! generated_script_list time: %s`, end - start); stdout.flush();
+	}
 
 	stdout.writefln(`All verification checks were successful.`); stdout.flush();
 	return 0;
