@@ -3,17 +3,25 @@
 // Verify Godot 3 projects that use the D Programming Language
 // https://github.com/workhorsy/godot-d-verify
 
+import helpers;
+import godot_project;
+import godot_project_parse;
+import godot_project_verify : verifyProject;
+import scan_d_code : getGodotScriptClasses;
 
+import std.stdio : stdout, stderr, File;
+
+bool is_printing_time = false;
 
 int main(string[] args) {
-	import std.stdio : stdout, stderr, File;
-	import std.file : chdir;
-	import std.file : exists;
-	import std.getopt : getopt, config, GetOptException;
-	import helpers : dirName, buildPath, toPosixPath, absolutePath;
-	import godot_project_parse : parseProject;
-	import scan_d_code : getGodotScriptClasses;
-	import godot_project_verify : verifyProject;
+	import std.file : chdir, exists;
+	import std.getopt : getopt, config;
+	import std.parallelism : Task, task, TaskPool, totalCPUs;
+	import std.sumtype : SumType, match;
+	import std.algorithm.comparison : clamp;
+
+	s64 start, end;
+	start = GetCpuTicksNS();
 
 	// Change the dir to the location of the current exe
 	chdir(dirName(args[0]));
@@ -69,10 +77,80 @@ int main(string[] args) {
 	stdout.writefln(`Verifying Godot 3 Dlang project:`); stdout.flush();
 	stdout.writefln(`Project file path: %s`, project_path); stdout.flush();
 	stdout.writefln(`Dlang source path: %s`, source_path); stdout.flush();
-	auto project = parseProject(buildPath(project_path, `project.godot`));
+	//auto project = parseProject(buildPath(project_path, `project.godot`));
+	end = GetCpuTicksNS();
+	if (is_printing_time) {
+		stdout.writefln(`!!!! setup time: %s`, end - start); stdout.flush();
+	}
+
+	start = GetCpuTicksNS();
+
+	alias GodotFile = SumType!(Project, Scene, NativeScript, GDScript, NativeLibrary);
+
+	static immutable auto parse_godot_file = function(string name) {
+		import std.string : format;
+		import std.path : extension;
+
+		switch (extension(name)) {
+			case ".godot":
+				return GodotFile(new Project(name));
+			case ".tscn":
+				return GodotFile(new Scene(name));
+			case ".gdns":
+				return GodotFile(new NativeScript(name));
+			case ".gd":
+				return GodotFile(new GDScript(name));
+			case ".gdnlib":
+				return GodotFile(new NativeLibrary(name));
+			default:
+				throw new Exception(`Unexpected file type: "%s"`.format(name));
+		}
+	};
+
+	// Setup task pool to use 1 to 4 threads
+	u32 cpu_count = clamp(totalCPUs, 1, 4);
+	auto task_pool = new TaskPool(cpu_count);
+	scope(exit) task_pool.stop();
+
+	// Start parsing each file in a task pool
+	Task!(parse_godot_file, string)*[] _parse_tasks;
+	getProjectFiles(project_path, (string name) {
+		//stdout.writefln(`!!!! name: %s`, name); stdout.flush();
+		auto t = task!(parse_godot_file)(name);
+		_parse_tasks ~= t;
+		task_pool.put(t);
+	});
+
+	// Complete all tasks in the pool
+	task_pool.finish();
+
+	// Copy all parsed files into project
+	Project project;
+	foreach (t ; _parse_tasks) {
+		GodotFile godot_file = t.yieldForce();
+		godot_file.match!(
+			(Project p) { project = p; },
+			(Scene s) { project._scenes[s._path] = s; },
+			(NativeScript ns) { project._scripts[ns._path] = ns; },
+			(GDScript gs) { project._gdscripts[gs._path] = gs; },
+			(NativeLibrary nl) { project._libraries[nl._path] = nl; }
+		);
+	}
+
+	end = GetCpuTicksNS();
+	if (is_printing_time) {
+		stdout.writefln(`!!!! parse time: %s`, end - start); stdout.flush();
+	}
+
+	start = GetCpuTicksNS();
 	auto class_infos = getGodotScriptClasses(source_path);
+	end = GetCpuTicksNS();
+	if (is_printing_time) {
+		stdout.writefln(`!!!! get script classes time: %s`, end - start); stdout.flush();
+	}
 
 	// Find and print any errors
+	start = GetCpuTicksNS();
 	auto project_errors = verifyProject(project_path, project, class_infos);
 	int error_count;
 	foreach (name, errors ; project_errors) {
@@ -86,8 +164,13 @@ int main(string[] args) {
 		stdout.writefln(`Verification failed! Found %s error(s)!`, error_count); stdout.flush();
 		return 1;
 	}
+	end = GetCpuTicksNS();
+	if (is_printing_time) {
+		stdout.writefln(`!!!! verify time: %s`, end - start); stdout.flush();
+	}
 
 	// Generate a list of classes that are GodotScript
+	start = GetCpuTicksNS();
 	if (generate_script_list) {
 		string file_name = "generated_script_list.d";
 		string script_list_file = buildPath(source_path, file_name);
@@ -100,6 +183,10 @@ int main(string[] args) {
 			file.writefln(`	"%s" : "%s",`, info._module, info.class_name);
 		}
 		file.writefln("];\n");
+	}
+	end = GetCpuTicksNS();
+	if (is_printing_time) {
+		stdout.writefln(`!!!! generated_script_list time: %s`, end - start); stdout.flush();
 	}
 
 	stdout.writefln(`All verification checks were successful.`); stdout.flush();
