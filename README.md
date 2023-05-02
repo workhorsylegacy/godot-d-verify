@@ -1,6 +1,17 @@
 # Godot D Verify
 Verify Godot 3 projects that use the D Programming Language
 
+:warning: :warning: :warning: :warning: :warning: :warning: :warning: :warning:
+:warning: :warning: :warning: :warning: :warning: :warning: :warning: :warning:
+:warning: :warning: :warning: :warning: :warning: :warning: :warning: :warning:
+
+!!! WARNING !!!
+
+This project is obsolete. It has been replaced by https://github.com/ImmersiveRPG/super-dlang-godot3-turbo-hyper-fighting-champion-edition
+
+:warning: :warning: :warning: :warning: :warning: :warning: :warning: :warning:
+:warning: :warning: :warning: :warning: :warning: :warning: :warning: :warning:
+:warning: :warning: :warning: :warning: :warning: :warning: :warning: :warning:
 
 # Run unit tests
 
